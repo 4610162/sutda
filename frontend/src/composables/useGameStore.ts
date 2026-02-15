@@ -3,7 +3,7 @@
 // convex/vue subpath 없이 onUpdate + mutation API 활용
 // ============================================================
 import { ref, computed, onMounted, onUnmounted } from "vue";
-import { api } from "../../../convex/_generated/api";
+import { api } from "/@convex/api";
 import { getConvexClient } from "./convexClient";
 import type { BetAction, PublicPlayer, Phase } from "../types";
 
