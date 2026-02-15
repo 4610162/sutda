@@ -1,32 +1,30 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
+import type { SutdaCard } from "../types";
 
 const props = defineProps<{
-  month: number;
-  isKwang: boolean;
-  faceUp?: boolean; // true면 앞면, false면 뒷면 (기본: true)
+  card: SutdaCard;
+  faceUp?: boolean;
 }>();
 
-const MONTH_NAMES: Record<number, string> = {
-  1: "일", 2: "이", 3: "삼", 4: "사", 5: "오",
-  6: "육", 7: "칠", 8: "팔", 9: "구", 10: "장",
-};
+// 이미지 경로
+const imgSrc = computed(() =>
+  `/cards/${props.card.imageFile}`,
+);
 
-const KWANG_MONTHS = new Set([1, 3, 8]);
-const isKwangCard = KWANG_MONTHS.has(props.month) && props.isKwang;
-
-// 뒤집기 애니메이션 상태
+// 뒤집기 애니메이션
 const flipped = ref(props.faceUp !== false);
-
 watch(
   () => props.faceUp,
   (val) => {
-    // 약간의 딜레이 후 뒤집기
     setTimeout(() => {
       flipped.value = val !== false;
     }, 100);
-  }
+  },
 );
+
+// 광패 테두리 색상
+const isKwang = computed(() => props.card.isKwang);
 </script>
 
 <template>
@@ -36,28 +34,32 @@ watch(
       <div class="card-back-face sutda-card-back">
         <span class="text-sutda-gold text-2xl font-serif">花</span>
       </div>
-      <!-- 앞면 -->
+      <!-- 앞면: 실제 화투 이미지 -->
       <div
-        class="card-front sutda-card"
-        :class="{
-          'border-red-500 bg-red-50': isKwangCard,
-          'border-blue-400 bg-blue-50': props.isKwang && !isKwangCard,
-        }"
+        class="card-front sutda-card overflow-hidden p-0"
+        :class="{ 'ring-2 ring-yellow-400': isKwang }"
       >
-        <span class="text-[10px] text-gray-400">{{ month }}월</span>
-        <span
-          class="text-3xl leading-none"
-          :class="{
-            'text-red-600': isKwangCard,
-            'text-blue-600': props.isKwang && !isKwangCard,
-            'text-gray-800': !props.isKwang,
-          }"
+        <img
+          :src="imgSrc"
+          :alt="`${card.month}월 카드`"
+          class="w-full h-full object-cover"
+          loading="lazy"
+        />
+        <!-- 광 배지 -->
+        <div
+          v-if="isKwang"
+          class="absolute top-0.5 right-0.5 bg-yellow-500 text-black text-[9px]
+                 font-bold px-0.5 rounded leading-tight"
         >
-          {{ MONTH_NAMES[month] }}
-        </span>
-        <span v-if="isKwangCard" class="text-[10px] text-red-500 mt-0.5">光</span>
-        <span v-else-if="props.isKwang" class="text-[10px] text-blue-500 mt-0.5">특</span>
+          光
+        </div>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.card-front {
+  position: relative;
+}
+</style>

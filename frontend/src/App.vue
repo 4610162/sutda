@@ -4,12 +4,12 @@ import Lobby from "./components/Lobby.vue";
 import Game from "./components/Game.vue";
 
 const playerName = ref("");
-const roomId = ref("");
+const roomCode = ref("");
 const joined = ref(false);
 
 function handleJoin(name: string, room: string) {
   playerName.value = name;
-  roomId.value = room;
+  roomCode.value = room;
   joined.value = true;
 }
 
@@ -27,7 +27,7 @@ function handleLeave() {
     <Game
       v-else
       :player-name="playerName"
-      :room-id="roomId"
+      :room-code="roomCode"
       @leave="handleLeave"
     />
   </div>

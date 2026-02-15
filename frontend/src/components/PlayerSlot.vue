@@ -2,11 +2,12 @@
 import type { PublicPlayer, Phase } from "../types";
 import SutdaCard from "./SutdaCard.vue";
 
-const props = defineProps<{
+defineProps<{
   player: PublicPlayer;
   isCurrentTurn: boolean;
   phase: Phase;
   isMe?: boolean;
+  isWinner?: boolean;
 }>();
 
 const AVATAR_COLORS = [
@@ -27,6 +28,7 @@ function avatarColor(name: string): string {
     :class="{
       'ring-2 ring-yellow-400 bg-yellow-400/10': isCurrentTurn && !player.folded,
       'opacity-40': player.folded,
+      'ring-2 ring-sutda-gold bg-sutda-gold/10': isWinner && phase === 'result' && !player.folded,
     }"
   >
     <!-- 아바타 -->
@@ -43,13 +45,22 @@ function avatarColor(name: string): string {
       </span>
     </div>
 
+    <!-- 승리 배지 (result 페이즈에서 승리자에게) -->
+    <span
+      v-if="isWinner && phase === 'result' && !player.folded"
+      class="text-xs font-bold px-3 py-1 rounded-full bg-sutda-gold text-black animate-pulse"
+    >
+      🏆 승리
+    </span>
+
     <!-- 이름 -->
     <span
       class="text-sm font-semibold max-w-[80px] truncate"
       :class="{
-        'text-yellow-300': isCurrentTurn && !player.folded,
+        'text-yellow-300': isCurrentTurn && !player.folded && !isWinner,
+        'text-sutda-gold': isWinner && phase === 'result' && !player.folded,
         'text-gray-400 line-through': player.folded,
-        'text-white': !isCurrentTurn && !player.folded,
+        'text-white': !isCurrentTurn && !player.folded && !isWinner,
       }"
     >
       {{ player.name }}
@@ -59,10 +70,9 @@ function avatarColor(name: string): string {
     <div class="flex gap-1.5">
       <template v-if="player.cards.length > 0">
         <SutdaCard
-          v-for="(card, idx) in player.cards"
+          v-for="card in player.cards"
           :key="card.id"
-          :month="card.month"
-          :is-kwang="card.isKwang"
+          :card="card"
           :face-up="true"
         />
       </template>
@@ -74,9 +84,9 @@ function avatarColor(name: string): string {
       </template>
     </div>
 
-    <!-- 족보 (결과 시) -->
+    <!-- 족보 (결과/종료 시) -->
     <span
-      v-if="phase === 'result' && player.hand"
+      v-if="(phase === 'result' || phase === 'ended') && player.hand"
       class="text-xs font-bold px-2 py-0.5 rounded-full"
       :class="{
         'bg-sutda-gold/20 text-sutda-gold': !player.folded,
@@ -86,9 +96,19 @@ function avatarColor(name: string): string {
       {{ player.folded ? "다이" : player.hand.name }}
     </span>
 
-    <!-- 베팅 금액 -->
+    <!-- 베팅 금액 & 잔액 -->
     <span v-if="player.totalBet > 0" class="text-xs text-yellow-300">
-      {{ player.totalBet.toLocaleString() }}
+      베팅 {{ player.totalBet.toLocaleString() }}원
+    </span>
+    <span class="text-xs text-green-300/70">
+      {{ player.balance.toLocaleString() }}원
+    </span>
+    <!-- 레디 표시 -->
+    <span
+      v-if="phase === 'result' && player.ready"
+      class="text-xs text-green-400 font-bold"
+    >
+      준비완료
     </span>
   </div>
 </template>
