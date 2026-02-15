@@ -1,0 +1,19 @@
+{
+  "name": "sutda-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "멀티플레이어 섯다 게임 - Vue.js 3 + PartyKit",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:partykit": "cd partykit && npx partykit dev",
+    "dev": "concurrently \"npm run dev:partykit\" \"npm run dev:frontend\"",
+    "build:frontend": "cd frontend && npm run build",
+    "deploy:partykit": "cd partykit && npx partykit deploy",
+    "deploy:frontend": "cd frontend && npx vercel --prod",
+    "deploy": "npm run deploy:partykit && npm run deploy:frontend",
+    "install:all": "cd partykit && npm install && cd ../frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

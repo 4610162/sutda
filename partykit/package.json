@@ -1,0 +1,17 @@
+{
+  "name": "sutda-game-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "섯다 게임 PartyKit 서버",
+  "scripts": {
+    "dev": "partykit dev",
+    "deploy": "partykit deploy"
+  },
+  "dependencies": {
+    "partykit": "^0.0.115",
+    "partysocket": "^1.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
