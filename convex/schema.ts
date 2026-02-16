@@ -28,6 +28,7 @@ export default defineSchema({
     totalRoundsPlayed: v.number(),
     endReason: v.optional(v.string()),
     isRematch: v.optional(v.boolean()),
+    accumulatedPot: v.optional(v.number()),
   }).index("by_roomCode", ["roomCode"]),
 
   players: defineTable({

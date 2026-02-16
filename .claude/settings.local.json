@@ -7,7 +7,14 @@
       "Bash(npm install:*)",
       "Bash(npx vite build:*)",
       "Bash(npm run build:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npx -p typescript tsc:*)",
+      "Bash(echo:*)",
+      "Bash(npx convex dev:*)",
+      "Bash(wc:*)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(npx convex run:*)",
+      "Bash(git stash:*)"
     ]
   }
 }

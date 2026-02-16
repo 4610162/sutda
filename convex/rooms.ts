@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { calculateRank, shuffleAndDeal } from "./game";
+import { calculateRank, resolveSpecialHands, shuffleAndDeal } from "./game";
 
 const INITIAL_BALANCE = 100_000;
 const BASE_BET = 1_000;
@@ -158,18 +158,19 @@ export const startGame = mutation({
       await ctx.db.patch(p._id, { folded: true, ready: false });
     }
 
-    // 재경기면 기존 판돈 이월, 아니면 초기화
-    const carryoverPot = room.isRematch ? room.pot : 0;
+    // 누적 판돈(구사 재경기 이월분) + 새 판돈
+    const accumulated = room.accumulatedPot ?? 0;
 
     await ctx.db.patch(room._id, {
       phase: "playing",
-      pot: carryoverPot + solvent.length * BASE_BET,
+      pot: accumulated + solvent.length * BASE_BET,
       turnOrder,
       turnIndex: 0,
       currentTurnId: turnOrder[0],
       roundCount: 0,
       totalRoundsPlayed: room.totalRoundsPlayed + 1,
-      isRematch: false,
+      isRematch: accumulated > 0,
+      accumulatedPot: 0,
     });
   },
 });
@@ -461,35 +462,35 @@ async function advanceTurn(ctx: { db: any }, room: any, players: any[]) {
 }
 
 // ─────────────────────────────────────────────
-// 내부: 족보 비교 → 승자 결정 (동점 시 재경기)
+// 내부: 족보 비교 → 승자 결정 (특수패 + 동점 재경기)
 // ─────────────────────────────────────────────
 async function determineWinner(ctx: { db: any }, roomId: any, players: any[], pot: number) {
   if (players.length === 0) return;
 
   // 각 플레이어 족보 계산
-  const playerResults = players.map((p) => ({
-    player: p,
+  const playerHands = players.map((p) => ({
+    playerId: p.playerId as string,
     result: calculateRank(p.cards[0], p.cards[1]),
   }));
 
-  const bestRank = Math.max(...playerResults.map((pr) => pr.result.rank));
-  const winners = playerResults.filter((pr) => pr.result.rank === bestRank);
+  // 특수 족보 해석 (구사/멍텅구리구사/암행어사/땡잡이 + 동점 판정)
+  const resolution = resolveSpecialHands(playerHands);
 
-  // 동점 → 구사 재경기
-  if (winners.length > 1) {
-    // 족보 기록
-    for (const { player, result } of playerResults) {
+  // ── 재경기: 판돈을 accumulatedPot에 누적 후 waiting 전환 ──
+  if (resolution.isRematch) {
+    // 족보 기록 (최종 해석된 결과 사용)
+    for (const { playerId, result } of resolution.results) {
       const dbPlayer = await ctx.db
         .query("players")
         .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
-        .filter((q: any) => q.eq(q.field("playerId"), player.playerId))
+        .filter((q: any) => q.eq(q.field("playerId"), playerId))
         .first();
       if (dbPlayer) {
         await ctx.db.patch(dbPlayer._id, { handName: result.name, handRank: result.rank });
       }
     }
 
-    // 모든 플레이어 상태 초기화 (카드, 베팅 등)
+    // 모든 플레이어 상태 초기화
     const allPlayers = await ctx.db
       .query("players")
       .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
@@ -505,7 +506,10 @@ async function determineWinner(ctx: { db: any }, roomId: any, players: any[], po
       });
     }
 
-    // 방 상태: waiting + 재경기 플래그 + 판돈 이월
+    // 현재 pot을 accumulatedPot에 누적
+    const room = await ctx.db.get(roomId);
+    const prevAccumulated = room?.accumulatedPot ?? 0;
+
     await ctx.db.patch(roomId, {
       phase: "waiting",
       isRematch: true,
@@ -513,18 +517,73 @@ async function determineWinner(ctx: { db: any }, roomId: any, players: any[], po
       turnOrder: [],
       turnIndex: 0,
       roundCount: 0,
-      // pot 유지 (다음 라운드로 이월)
+      pot: 0,
+      accumulatedPot: prevAccumulated + pot,
     });
     return;
   }
 
-  // 단독 승자
-  await resolveWinner(ctx, roomId, winners[0].player.playerId, players, pot);
+  // ── 단독 승자: resolveWinner에 최종 해석 결과 전달 ──
+  await resolveWinnerWithResults(ctx, roomId, resolution.winnerId!, resolution.results, players, pot);
 }
 
 // ─────────────────────────────────────────────
 // 내부: 승패 정산 + 파산/인원부족 체크
+// (resolveSpecialHands 해석 결과를 직접 사용)
 // ─────────────────────────────────────────────
+async function resolveWinnerWithResults(
+  ctx: { db: any },
+  roomId: any,
+  winnerId: string,
+  resolvedResults: { playerId: string; result: { rank: number; name: string; score: number } }[],
+  players: any[],
+  pot: number,
+) {
+  // 족보 기록 + 승자 잔액 정산 (해석된 결과 사용)
+  for (const p of players) {
+    const dbPlayer = await ctx.db
+      .query("players")
+      .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+      .filter((q: any) => q.eq(q.field("playerId"), p.playerId))
+      .first();
+    if (!dbPlayer) continue;
+
+    // resolvedResults에서 최종 해석된 이름/rank를 가져옴
+    const resolved = resolvedResults.find((r) => r.playerId === p.playerId);
+    const handName = resolved?.result.name;
+    const handRank = resolved?.result.rank;
+
+    if (p.playerId === winnerId) {
+      await ctx.db.patch(dbPlayer._id, { handName, handRank, balance: dbPlayer.balance + pot });
+    } else {
+      await ctx.db.patch(dbPlayer._id, { handName, handRank });
+    }
+  }
+
+  // ── 파산·인원부족 체크 ──────────────────────────────────
+  const allPlayers = await ctx.db
+    .query("players")
+    .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
+    .collect();
+
+  const solvent = allPlayers.filter((p: any) => p.balance >= BASE_BET);
+
+  if (solvent.length < 2) {
+    const endReason = solvent.length === 0 ? "bankruptcy" : "solo_survivor";
+    await ctx.db.patch(roomId, {
+      phase: "ended",
+      currentTurnId: undefined,
+      endReason,
+    });
+  } else {
+    await ctx.db.patch(roomId, {
+      phase: "result",
+      currentTurnId: undefined,
+    });
+  }
+}
+
+// 다이에 의한 단독 생존자 처리용 (기존 resolveWinner 유지)
 async function resolveWinner(
   ctx: { db: any },
   roomId: any,
@@ -532,7 +591,6 @@ async function resolveWinner(
   players: any[],
   pot: number,
 ) {
-  // 족보 기록 + 승자 잔액 정산
   for (const p of players) {
     const dbPlayer = await ctx.db
       .query("players")
@@ -556,7 +614,6 @@ async function resolveWinner(
     }
   }
 
-  // ── 파산·인원부족 체크 ──────────────────────────────────
   const allPlayers = await ctx.db
     .query("players")
     .withIndex("by_room", (q: any) => q.eq("roomId", roomId))
@@ -565,7 +622,6 @@ async function resolveWinner(
   const solvent = allPlayers.filter((p: any) => p.balance >= BASE_BET);
 
   if (solvent.length < 2) {
-    // 게임 종료 (파산 또는 혼자 남음)
     const endReason = solvent.length === 0 ? "bankruptcy" : "solo_survivor";
     await ctx.db.patch(roomId, {
       phase: "ended",

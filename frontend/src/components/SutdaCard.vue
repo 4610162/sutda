@@ -7,10 +7,17 @@ const props = defineProps<{
   faceUp?: boolean;
 }>();
 
-// 이미지 경로
-const imgSrc = computed(() =>
-  `/cards/${props.card.imageFile}`,
-);
+// 이미지 경로 (imageFile이 없으면 빈 문자열)
+const imgSrc = computed(() => {
+  const file = props.card?.imageFile;
+  return file ? `/cards/${file}` : "";
+});
+
+// 이미지 로드 실패 플래그
+const imgError = ref(false);
+function onImgError() {
+  imgError.value = true;
+}
 
 // 뒤집기 애니메이션
 const flipped = ref(props.faceUp !== false);
@@ -24,7 +31,7 @@ watch(
 );
 
 // 광패 테두리 색상
-const isKwang = computed(() => props.card.isKwang);
+const isKwang = computed(() => props.card?.isKwang ?? false);
 </script>
 
 <template>
@@ -40,11 +47,14 @@ const isKwang = computed(() => props.card.isKwang);
         :class="{ 'ring-2 ring-yellow-400': isKwang }"
       >
         <img
+          v-if="imgSrc && !imgError"
           :src="imgSrc"
           :alt="`${card.month}월 카드`"
           class="w-full h-full object-cover"
           loading="lazy"
+          @error="onImgError"
         />
+        <span v-else class="text-gray-500 text-xs text-center">{{ card.month }}월</span>
         <!-- 광 배지 -->
         <div
           v-if="isKwang"
