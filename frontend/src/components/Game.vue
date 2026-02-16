@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useGameStore } from "../composables/useGameStore";
 import PlayerSlot from "./PlayerSlot.vue";
 import SutdaCard from "./SutdaCard.vue";
@@ -55,6 +55,25 @@ const isFirstPlayer = computed(() => {
 
 // 라운드 결과에서 승자 ID
 const winnerId = computed(() => resultSummary.value?.winnerId ?? null);
+
+// 내 베팅 액션 피드백: 2.5초 후 자동 사라짐
+const myVisibleAction = ref<string | undefined>(undefined);
+let myActionTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(
+  () => myPlayer.value?.lastAction,
+  (newAction) => {
+    if (myActionTimer) clearTimeout(myActionTimer);
+    if (newAction) {
+      myVisibleAction.value = newAction;
+      myActionTimer = setTimeout(() => {
+        myVisibleAction.value = undefined;
+      }, 2500);
+    } else {
+      myVisibleAction.value = undefined;
+    }
+  },
+);
 
 async function handleLeave() {
   await leaveRoom();
@@ -229,19 +248,31 @@ async function handleLeave() {
             {{ (myPlayer?.name || playerName).charAt(0) }}
           </div>
           <div>
-            <span
-              class="font-semibold"
-              :class="
-                phase === 'result' && winnerId === playerId
-                  ? 'text-sutda-gold'
-                  : isMyTurn
-                  ? 'text-yellow-300'
-                  : 'text-white'
-              "
-            >
-              {{ myPlayer?.name || playerName }}
+            <span class="flex items-center gap-1.5">
+              <span
+                class="font-semibold"
+                :class="
+                  phase === 'result' && winnerId === playerId
+                    ? 'text-sutda-gold'
+                    : isMyTurn
+                    ? 'text-yellow-300'
+                    : 'text-white'
+                "
+              >
+                {{ myPlayer?.name || playerName }}
+              </span>
+              <span v-if="myPlayer?.isHost" class="text-xs text-sutda-gold">(방장)</span>
+              <!-- 내 베팅 액션 텍스트 (일시 표시) -->
+              <Transition name="action-fade">
+                <span
+                  v-if="myVisibleAction && phase === 'playing'"
+                  class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/90 text-black
+                         whitespace-nowrap animate-bounce"
+                >
+                  {{ myVisibleAction }}
+                </span>
+              </Transition>
             </span>
-            <span v-if="myPlayer?.isHost" class="ml-1 text-xs text-sutda-gold">(방장)</span>
             <!-- 내 승리 배지 -->
             <span
               v-if="phase === 'result' && winnerId === playerId"
@@ -398,5 +429,19 @@ async function handleLeave() {
 .slide-leave-to {
   opacity: 0;
   transform: translateY(-10px);
+}
+.action-fade-enter-active {
+  transition: all 0.3s ease;
+}
+.action-fade-leave-active {
+  transition: all 0.5s ease;
+}
+.action-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.8);
+}
+.action-fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.8);
 }
 </style>

@@ -5,6 +5,17 @@ import { calculateRank, resolveSpecialHands, shuffleAndDeal } from "./game";
 const INITIAL_BALANCE = 100_000;
 const BASE_BET = 1_000;
 
+/** 베팅 액션 한글 라벨 (UI 피드백용) */
+const ACTION_LABELS: Record<string, string> = {
+  check: "체크",
+  pping: "삥",
+  half: "하프",
+  quarter: "쿼터",
+  call: "콜",
+  ddadang: "따당",
+  die: "다이",
+};
+
 // ─────────────────────────────────────────────
 // Query: 로비용 방 목록 (ended 제외)
 // ─────────────────────────────────────────────
@@ -154,6 +165,14 @@ export const placeBet = mutation({
       ? Math.max(...activePlayers.map((p) => p.totalBet))
       : me.totalBet;
 
+    // lastAction 기록 (UI 피드백용)
+    await ctx.db.patch(me._id, { lastAction: ACTION_LABELS[action] ?? action });
+
+    // lastBettorId 기록 (체크와 다이 제외 - 실제 베팅 액션만)
+    if (action !== "check" && action !== "die") {
+      await ctx.db.patch(room._id, { lastBettorId: playerId });
+    }
+
     // ── 다이 ──────────────────────────────────────────────────
     if (action === "die") {
       await ctx.db.patch(me._id, { folded: true });
@@ -229,7 +248,7 @@ export const placeBet = mutation({
     } else if (action === "quarter") {
       amount = Math.max(Math.floor(room.pot / 4), room.baseBet);
     } else {
-      // call: 앞선 최고 베팅에 맞춤 (즉시 쇼다운 X → advanceTurn에서 처리)
+      // call: 앞선 최고 베팅에 맞춤
       amount = Math.max(maxBet - me.totalBet, 0);
     }
 
@@ -274,15 +293,66 @@ export const setReady = mutation({
 
     // 잔액이 있는 플레이어 전원 레디 → 즉시 게임 시작 (playing)
     const updatedPlayers = players.map((p) => (p.playerId === playerId ? { ...p, ready: true } : p));
-    const eligible = updatedPlayers.filter((p) => p.balance >= BASE_BET);
 
-    if (eligible.length >= 2 && eligible.every((p) => p.ready)) {
+    // 재경기 모드: rematchPlayerIds에 포함된 플레이어만 참여
+    const isRematchMode = room.isRematch && room.rematchPlayerIds && room.rematchPlayerIds.length > 0;
+    const rematchIds = room.rematchPlayerIds ?? [];
+
+    let eligible: typeof updatedPlayers;
+    if (isRematchMode) {
+      // 재경기: 무승부 플레이어 중 잔액 있는 플레이어만
+      eligible = updatedPlayers.filter(
+        (p) => rematchIds.includes(p.playerId) && p.balance >= BASE_BET,
+      );
+    } else {
+      // 일반 게임: 잔액 있는 모든 플레이어
+      eligible = updatedPlayers.filter((p) => p.balance >= BASE_BET);
+    }
+
+    // 재경기 모드에서는 참여 대상 플레이어만 전원 레디해야 시작
+    const readyCheck = isRematchMode
+      ? eligible.length >= 2 && eligible.every((p) => p.ready)
+      : eligible.length >= 2 && eligible.every((p) => p.ready);
+
+    if (readyCheck) {
+      // ── 선(First Player) 결정 ──
+      // 전체 플레이어 목록 (입장 순서 = DB 순서)
+      const allPlayerIds = players.map((p) => p.playerId);
+      const eligibleIds = eligible.map((p) => p.playerId);
+
+      let firstPlayerId: string;
+
+      if (isRematchMode && room.lastBettorId && eligibleIds.includes(room.lastBettorId)) {
+        // 재경기: 마지막 베팅 액션을 한 플레이어가 선
+        firstPlayerId = room.lastBettorId;
+      } else if (room.lastWinnerId && eligibleIds.includes(room.lastWinnerId)) {
+        // 두 번째 라운드 이후: 직전 라운드 승자가 선
+        firstPlayerId = room.lastWinnerId;
+      } else if (room.hostId && eligibleIds.includes(room.hostId)) {
+        // 첫 라운드: 방장이 선
+        firstPlayerId = room.hostId;
+      } else {
+        // 폴백: eligible 중 입장 순서가 가장 빠른 플레이어
+        firstPlayerId = eligibleIds[0];
+      }
+
+      // turnOrder: 선 플레이어부터 시작, 입장 순서(인덱스 증가 순)로 순환
+      const firstIdx = allPlayerIds.indexOf(firstPlayerId);
+      const turnOrder: string[] = [];
+      for (let i = 0; i < allPlayerIds.length; i++) {
+        const pid = allPlayerIds[(firstIdx + i) % allPlayerIds.length];
+        if (eligibleIds.includes(pid)) {
+          turnOrder.push(pid);
+        }
+      }
+
       // 카드 배분
       const { hands } = shuffleAndDeal(eligible.length);
-      const turnOrder = eligible.map((p) => p.playerId);
 
       for (let i = 0; i < eligible.length; i++) {
-        const dbP = players.find((p) => p.playerId === eligible[i].playerId)!;
+        // turnOrder 순서에 맞게 카드 배분
+        const targetPlayerId = turnOrder[i];
+        const dbP = players.find((p) => p.playerId === targetPlayerId)!;
         await ctx.db.patch(dbP._id, {
           cards: hands[i],
           totalBet: BASE_BET,
@@ -291,20 +361,24 @@ export const setReady = mutation({
           balance: dbP.balance - BASE_BET,
           handName: undefined,
           handRank: undefined,
+          lastAction: undefined,
         });
       }
 
-      // 잔액 부족 플레이어 폴드 처리
-      for (const p of players.filter((p) => p.balance < BASE_BET)) {
-        await ctx.db.patch(p._id, { folded: true, ready: false });
+      // 잔액 부족 플레이어 또는 재경기 미참여 플레이어 폴드 처리
+      for (const p of players) {
+        const isEligible = eligibleIds.includes(p.playerId);
+        if (!isEligible) {
+          await ctx.db.patch(p._id, { folded: true, ready: false, lastAction: undefined });
+        }
       }
 
-      // 누적 판돈(구사 재경기 이월분) + 새 판돈
+      // 누적 판돈(재경기 이월분) + 새 판돈
       const accumulated = room.accumulatedPot ?? 0;
 
       await ctx.db.patch(room._id, {
         phase: "playing",
-        pot: accumulated + eligible.length * BASE_BET,
+        pot: accumulated + turnOrder.length * BASE_BET,
         turnOrder,
         turnIndex: 0,
         currentTurnId: turnOrder[0],
@@ -312,6 +386,8 @@ export const setReady = mutation({
         totalRoundsPlayed: room.totalRoundsPlayed + 1,
         isRematch: accumulated > 0,
         accumulatedPot: 0,
+        lastBettorId: undefined,
+        rematchPlayerIds: undefined,
       });
     }
   },
@@ -459,6 +535,12 @@ async function determineWinner(ctx: { db: any }, roomId: any, players: any[], po
       }
     }
 
+    // 무승부 플레이어 목록 (가장 높은 rank를 가진 플레이어들)
+    const bestRank = Math.max(...resolution.results.map((r) => r.result.rank));
+    const tiedPlayerIds = resolution.results
+      .filter((r) => r.result.rank === bestRank)
+      .map((r) => r.playerId);
+
     // 모든 플레이어 상태 초기화
     const allPlayers = await ctx.db
       .query("players")
@@ -472,6 +554,7 @@ async function determineWinner(ctx: { db: any }, roomId: any, players: any[], po
         ready: false,
         handName: undefined,
         handRank: undefined,
+        lastAction: undefined,
       });
     }
 
@@ -488,6 +571,9 @@ async function determineWinner(ctx: { db: any }, roomId: any, players: any[], po
       roundCount: 0,
       pot: 0,
       accumulatedPot: prevAccumulated + pot,
+      // 재경기 시 참여할 무승부 플레이어 목록 저장
+      rematchPlayerIds: tiedPlayerIds,
+      // lastBettorId는 유지 (재경기 선 결정에 사용)
     });
     return;
   }
@@ -543,11 +629,13 @@ async function resolveWinnerWithResults(
       phase: "ended",
       currentTurnId: undefined,
       endReason,
+      lastWinnerId: winnerId,
     });
   } else {
     await ctx.db.patch(roomId, {
       phase: "result",
       currentTurnId: undefined,
+      lastWinnerId: winnerId,
     });
   }
 }
@@ -596,11 +684,13 @@ async function resolveWinner(
       phase: "ended",
       currentTurnId: undefined,
       endReason,
+      lastWinnerId: winnerId,
     });
   } else {
     await ctx.db.patch(roomId, {
       phase: "result",
       currentTurnId: undefined,
+      lastWinnerId: winnerId,
     });
   }
 }

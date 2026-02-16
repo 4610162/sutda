@@ -15,7 +15,8 @@
       "Bash(npx vue-tsc:*)",
       "Bash(npx convex run:*)",
       "Bash(git stash:*)",
-      "Bash(npx convex typecheck:*)"
+      "Bash(npx convex typecheck:*)",
+      "Bash(npx convex codegen:*)"
     ]
   }
 }

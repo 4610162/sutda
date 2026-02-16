@@ -82,6 +82,7 @@ export function useGameStore(roomCode: string, playerName: string) {
       hand: rp.handName != null && rp.handRank != null
         ? { name: rp.handName, rank: rp.handRank }
         : undefined,
+      lastAction: rp.lastAction ?? undefined,
     }));
   });
 

@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { ref, watch } from "vue";
 import type { PublicPlayer, Phase } from "../types";
 import SutdaCard from "./SutdaCard.vue";
 
-defineProps<{
+const props = defineProps<{
   player: PublicPlayer;
   isCurrentTurn: boolean;
   phase: Phase;
@@ -20,6 +21,25 @@ function avatarColor(name: string): string {
   for (const ch of name) hash = (hash + ch.charCodeAt(0)) % AVATAR_COLORS.length;
   return AVATAR_COLORS[hash];
 }
+
+// 베팅 액션 피드백: 2.5초 후 자동 사라짐
+const visibleAction = ref<string | undefined>(undefined);
+let actionTimer: ReturnType<typeof setTimeout> | null = null;
+
+watch(
+  () => props.player.lastAction,
+  (newAction) => {
+    if (actionTimer) clearTimeout(actionTimer);
+    if (newAction) {
+      visibleAction.value = newAction;
+      actionTimer = setTimeout(() => {
+        visibleAction.value = undefined;
+      }, 2500);
+    } else {
+      visibleAction.value = undefined;
+    }
+  },
+);
 </script>
 
 <template>
@@ -53,18 +73,30 @@ function avatarColor(name: string): string {
       🏆 승리
     </span>
 
-    <!-- 이름 -->
-    <span
-      class="text-sm font-semibold max-w-[80px] truncate"
-      :class="{
-        'text-yellow-300': isCurrentTurn && !player.folded && !isWinner,
-        'text-sutda-gold': isWinner && phase === 'result' && !player.folded,
-        'text-gray-400 line-through': player.folded,
-        'text-white': !isCurrentTurn && !player.folded && !isWinner,
-      }"
-    >
-      {{ player.name }}
-    </span>
+    <!-- 이름 + 베팅 액션 피드백 -->
+    <div class="flex items-center gap-1.5">
+      <span
+        class="text-sm font-semibold max-w-[80px] truncate"
+        :class="{
+          'text-yellow-300': isCurrentTurn && !player.folded && !isWinner,
+          'text-sutda-gold': isWinner && phase === 'result' && !player.folded,
+          'text-gray-400 line-through': player.folded,
+          'text-white': !isCurrentTurn && !player.folded && !isWinner,
+        }"
+      >
+        {{ player.name }}
+      </span>
+      <!-- 베팅 액션 텍스트 (일시 표시) -->
+      <Transition name="action-fade">
+        <span
+          v-if="visibleAction && phase === 'playing'"
+          class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/90 text-black
+                 whitespace-nowrap animate-bounce"
+        >
+          {{ visibleAction }}
+        </span>
+      </Transition>
+    </div>
 
     <!-- 카드 영역 -->
     <div class="flex gap-1.5">
@@ -111,3 +143,20 @@ function avatarColor(name: string): string {
     </span>
   </div>
 </template>
+
+<style scoped>
+.action-fade-enter-active {
+  transition: all 0.3s ease;
+}
+.action-fade-leave-active {
+  transition: all 0.5s ease;
+}
+.action-fade-enter-from {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.8);
+}
+.action-fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px) scale(0.8);
+}
+</style>

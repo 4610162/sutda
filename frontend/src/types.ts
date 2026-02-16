@@ -70,4 +70,5 @@ export interface PublicPlayer {
   ready: boolean;
   isHost: boolean;
   hand?: { name: string; rank: number };
+  lastAction?: string;  // 마지막 베팅 액션 (UI 피드백용)
 }

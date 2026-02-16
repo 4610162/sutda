@@ -29,6 +29,12 @@ export default defineSchema({
     endReason: v.optional(v.string()),
     isRematch: v.optional(v.boolean()),
     accumulatedPot: v.optional(v.number()),
+    // 선 결정용: 직전 라운드 승자
+    lastWinnerId: v.optional(v.string()),
+    // 재경기 선 결정용: 마지막 베팅 액션을 한 플레이어
+    lastBettorId: v.optional(v.string()),
+    // 재경기 시 참여할 플레이어 목록 (무승부 플레이어만)
+    rematchPlayerIds: v.optional(v.array(v.string())),
   }).index("by_roomCode", ["roomCode"]),
 
   players: defineTable({
@@ -42,6 +48,8 @@ export default defineSchema({
     ready: v.boolean(),
     handName: v.optional(v.string()),
     handRank: v.optional(v.number()),
+    // 마지막 베팅 액션 (UI 피드백용)
+    lastAction: v.optional(v.string()),
   })
     .index("by_room", ["roomId"])
     .index("by_room_player", ["roomId", "playerId"]),
