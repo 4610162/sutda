@@ -384,23 +384,37 @@ async function advanceTurn(ctx: { db: any }, room: any, players: any[]) {
 
   if (wrapping) {
     newRoundCount++;
-
-    // 모든 활성 플레이어 베팅 동일 → 쇼다운
-    const active = players.filter((p) => !p.folded);
-    if (active.length > 1) {
-      const maxBet = Math.max(...active.map((p) => p.totalBet));
-      if (active.every((p) => p.totalBet === maxBet)) {
-        await determineWinner(ctx, room._id, active, room.pot);
-        return;
-      }
-    }
-
   }
 
+  // 활성 플레이어 (폴드하지 않은)
+  const active = players.filter((p) => !p.folded);
+
+  if (active.length > 1) {
+    const maxBet = Math.max(...active.map((p) => p.totalBet));
+
+    // 추가 베팅이 필요한 플레이어: 올인이 아니고(balance > 0), 최대 베팅에 미달
+    const needToAct = active.filter((p) => p.balance > 0 && p.totalBet < maxBet);
+
+    // 조건 1: 실제 베팅이 진행된 상태(maxBet > 앤티)에서
+    // 모든 플레이어가 최대 베팅에 맞췄거나 올인 → 즉시 쇼다운
+    if (needToAct.length === 0 && maxBet > room.baseBet) {
+      await determineWinner(ctx, room._id, active, room.pot);
+      return;
+    }
+
+    // 조건 2: 턴이 한 바퀴 돌았고, 모든 활성 플레이어 베팅 동일 → 쇼다운
+    // (체크-체크-체크 등 앤티 상태에서 전원 체크한 경우)
+    if (wrapping && active.every((p) => p.totalBet === maxBet)) {
+      await determineWinner(ctx, room._id, active, room.pot);
+      return;
+    }
+  }
+
+  // 다음 유효한 플레이어 찾기 (폴드 및 올인 제외)
   let attempts = 0;
   while (attempts < order.length) {
     const candidate = players.find((p) => p.playerId === order[nextIdx]);
-    if (candidate && !candidate.folded) {
+    if (candidate && !candidate.folded && candidate.balance > 0) {
       await ctx.db.patch(room._id, {
         turnIndex: nextIdx,
         currentTurnId: order[nextIdx],
@@ -411,6 +425,8 @@ async function advanceTurn(ctx: { db: any }, room: any, players: any[]) {
     nextIdx = (nextIdx + 1) % order.length;
     attempts++;
   }
+
+  // 유효한 플레이어가 없음 (전원 올인 또는 폴드) → 쇼다운
   await determineWinner(ctx, room._id, players.filter((p) => !p.folded), room.pot);
 }
 
