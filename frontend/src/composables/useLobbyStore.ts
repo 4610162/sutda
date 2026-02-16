@@ -2,7 +2,7 @@
 // useLobbyStore — 로비 방 목록 실시간 구독
 // ============================================================
 import { ref, onMounted, onUnmounted } from "vue";
-import { api } from "../../../convex/_generated/api";
+import { api } from "@convex/api";
 import { getConvexClient } from "./convexClient";
 
 export interface LobbyRoom {
