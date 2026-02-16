@@ -45,8 +45,8 @@ export const listRooms = query({
 // Query: 방 상태 실시간 구독
 // ─────────────────────────────────────────────
 export const getRoom = query({
-  args: { roomCode: v.string() },
-  handler: async (ctx, { roomCode }) => {
+  args: { roomCode: v.string(), playerId: v.optional(v.string()) },
+  handler: async (ctx, { roomCode, playerId }) => {
     const room = await ctx.db
       .query("rooms")
       .withIndex("by_roomCode", (q) => q.eq("roomCode", roomCode))
@@ -56,7 +56,27 @@ export const getRoom = query({
       .query("players")
       .withIndex("by_room", (q) => q.eq("roomId", room._id))
       .collect();
-    return { room, players };
+
+    // 본인에게만 playing 중에도 족보를 미리 계산하여 전달
+    const enrichedPlayers = players.map((p) => {
+      const isMe = playerId && p.playerId === playerId;
+      const isRevealed = room.phase === "result" || room.phase === "ended";
+
+      // 이미 DB에 족보가 저장된 경우 (result/ended)
+      if (isRevealed && p.handName != null) {
+        return p;
+      }
+
+      // 본인이고 카드가 2장 있으면 족보를 계산하여 전달
+      if (isMe && p.cards?.length === 2) {
+        const result = calculateRank(p.cards[0], p.cards[1]);
+        return { ...p, handName: result.name, handRank: result.rank };
+      }
+
+      return p;
+    });
+
+    return { room, players: enrichedPlayers };
   },
 });
 

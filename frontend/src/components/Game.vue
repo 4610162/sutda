@@ -273,9 +273,9 @@ async function handleLeave() {
           </div>
         </div>
 
-        <!-- 족보 (결과 시) -->
+        <!-- 족보 (본인은 패를 받는 즉시 표시) -->
         <div
-          v-if="(phase === 'result' || phase === 'ended') && myPlayer?.hand"
+          v-if="myPlayer?.hand"
           class="bg-sutda-gold/20 text-sutda-gold px-4 py-1 rounded-full text-sm font-bold"
         >
           {{ myPlayer.hand.name }}

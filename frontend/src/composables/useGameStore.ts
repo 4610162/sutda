@@ -35,7 +35,7 @@ export function useGameStore(roomCode: string, playerName: string) {
   function subscribe() {
     unsubscribe = client.onUpdate(
       api.rooms.getRoom,
-      { roomCode },
+      { roomCode, playerId },
       (data: any) => {
         roomData.value = data ?? null;
       },
