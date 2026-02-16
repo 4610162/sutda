@@ -18,7 +18,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "/@convex/*": ["../convex/_generated/*"]
     },
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
