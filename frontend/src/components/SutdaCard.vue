@@ -39,8 +39,7 @@ const isKwang = computed(() => props.card?.isKwang ?? false);
     <div class="card-flipper" :class="{ flipped }">
       <!-- 뒷면 -->
       <div class="card-back-face sutda-card-back">
-        <span class="text-sutda-gold text-2xl font-serif">花</span>
-      </div>
+        </div>
       <!-- 앞면: 실제 화투 이미지 -->
       <div
         class="card-front sutda-card overflow-hidden p-0"
@@ -50,7 +49,7 @@ const isKwang = computed(() => props.card?.isKwang ?? false);
           v-if="imgSrc && !imgError"
           :src="imgSrc"
           :alt="`${card.month}월 카드`"
-          class="w-full h-full object-cover"
+          class="w-full h-full object-contain"
           loading="lazy"
           @error="onImgError"
         />

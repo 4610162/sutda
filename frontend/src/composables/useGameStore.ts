@@ -134,14 +134,6 @@ export function useGameStore(roomCode: string, playerName: string) {
     }
   }
 
-  async function startGame() {
-    try {
-      await client.mutation(api.rooms.startGame, { roomCode, playerId });
-    } catch (e: any) {
-      setError(e?.data ?? e?.message ?? "시작 실패");
-    }
-  }
-
   async function bet(action: BetAction) {
     try {
       await client.mutation(api.rooms.placeBet, { roomCode, playerId, action });
@@ -187,7 +179,6 @@ export function useGameStore(roomCode: string, playerName: string) {
     isMyTurn,
     isHost,
     resultSummary,
-    startGame,
     bet,
     setReady,
     leaveRoom,

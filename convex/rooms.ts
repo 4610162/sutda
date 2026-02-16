@@ -4,7 +4,6 @@ import { calculateRank, resolveSpecialHands, shuffleAndDeal } from "./game";
 
 const INITIAL_BALANCE = 100_000;
 const BASE_BET = 1_000;
-const MAX_ROUNDS = 2;
 
 // ─────────────────────────────────────────────
 // Query: 로비용 방 목록 (ended 제외)
@@ -75,7 +74,7 @@ export const joinRoom = mutation({
         turnOrder: [],
         turnIndex: 0,
         roundCount: 0,
-        maxRounds: MAX_ROUNDS,
+        maxRounds: 0,
         hostId: playerId,
         totalRoundsPlayed: 0,
         isRematch: false,
@@ -113,65 +112,6 @@ export const joinRoom = mutation({
     });
 
     return { roomId: room._id };
-  },
-});
-
-// ─────────────────────────────────────────────
-// Mutation: 게임 시작 (방장 전용)
-// ─────────────────────────────────────────────
-export const startGame = mutation({
-  args: { roomCode: v.string(), playerId: v.string() },
-  handler: async (ctx, { roomCode, playerId }) => {
-    const room = await ctx.db
-      .query("rooms")
-      .withIndex("by_roomCode", (q) => q.eq("roomCode", roomCode))
-      .first();
-    if (!room) throw new Error("방을 찾을 수 없습니다.");
-    if (room.phase !== "waiting") throw new Error("이미 진행 중입니다.");
-    if (room.hostId !== playerId) throw new Error("방장만 시작할 수 있습니다.");
-
-    const players = await ctx.db
-      .query("players")
-      .withIndex("by_room", (q) => q.eq("roomId", room._id))
-      .collect();
-
-    const solvent = players.filter((p) => p.balance >= BASE_BET);
-    if (solvent.length < 2) throw new Error("잔액이 충분한 플레이어가 2명 미만입니다.");
-
-    const { hands } = shuffleAndDeal(solvent.length);
-    const turnOrder = solvent.map((p) => p.playerId);
-
-    for (let i = 0; i < solvent.length; i++) {
-      await ctx.db.patch(solvent[i]._id, {
-        cards: hands[i],
-        totalBet: BASE_BET,
-        folded: false,
-        ready: false,
-        balance: solvent[i].balance - BASE_BET,
-        handName: undefined,
-        handRank: undefined,
-      });
-    }
-
-    // 잔액 부족 플레이어 폴드 처리
-    for (const p of players.filter((p) => p.balance < BASE_BET)) {
-      await ctx.db.patch(p._id, { folded: true, ready: false });
-    }
-
-    // 누적 판돈(구사 재경기 이월분) + 새 판돈
-    const accumulated = room.accumulatedPot ?? 0;
-
-    await ctx.db.patch(room._id, {
-      phase: "playing",
-      pot: accumulated + solvent.length * BASE_BET,
-      turnOrder,
-      turnIndex: 0,
-      currentTurnId: turnOrder[0],
-      roundCount: 0,
-      totalRoundsPlayed: room.totalRoundsPlayed + 1,
-      isRematch: accumulated > 0,
-      accumulatedPot: 0,
-    });
   },
 });
 
@@ -321,7 +261,7 @@ export const setReady = mutation({
       .withIndex("by_roomCode", (q) => q.eq("roomCode", roomCode))
       .first();
     if (!room) throw new Error("방을 찾을 수 없습니다.");
-    if (room.phase !== "result") throw new Error("결과 페이즈가 아닙니다.");
+    if (room.phase !== "result" && room.phase !== "waiting") throw new Error("레디할 수 없는 페이즈입니다.");
 
     const players = await ctx.db
       .query("players")
@@ -332,29 +272,47 @@ export const setReady = mutation({
     if (!me) throw new Error("플레이어를 찾을 수 없습니다.");
     await ctx.db.patch(me._id, { ready: true });
 
-    // 잔액이 있는 플레이어 전원 레디 → 대기 페이즈
-    const eligible = players.map((p) => (p.playerId === playerId ? { ...p, ready: true } : p))
-      .filter((p) => p.balance >= BASE_BET);
+    // 잔액이 있는 플레이어 전원 레디 → 즉시 게임 시작 (playing)
+    const updatedPlayers = players.map((p) => (p.playerId === playerId ? { ...p, ready: true } : p));
+    const eligible = updatedPlayers.filter((p) => p.balance >= BASE_BET);
 
     if (eligible.length >= 2 && eligible.every((p) => p.ready)) {
-      await ctx.db.patch(room._id, {
-        phase: "waiting",
-        pot: 0,
-        currentTurnId: undefined,
-        turnOrder: [],
-        turnIndex: 0,
-        roundCount: 0,
-      });
-      for (const p of players) {
-        await ctx.db.patch(p._id, {
-          cards: [],
-          totalBet: 0,
+      // 카드 배분
+      const { hands } = shuffleAndDeal(eligible.length);
+      const turnOrder = eligible.map((p) => p.playerId);
+
+      for (let i = 0; i < eligible.length; i++) {
+        const dbP = players.find((p) => p.playerId === eligible[i].playerId)!;
+        await ctx.db.patch(dbP._id, {
+          cards: hands[i],
+          totalBet: BASE_BET,
           folded: false,
           ready: false,
+          balance: dbP.balance - BASE_BET,
           handName: undefined,
           handRank: undefined,
         });
       }
+
+      // 잔액 부족 플레이어 폴드 처리
+      for (const p of players.filter((p) => p.balance < BASE_BET)) {
+        await ctx.db.patch(p._id, { folded: true, ready: false });
+      }
+
+      // 누적 판돈(구사 재경기 이월분) + 새 판돈
+      const accumulated = room.accumulatedPot ?? 0;
+
+      await ctx.db.patch(room._id, {
+        phase: "playing",
+        pot: accumulated + eligible.length * BASE_BET,
+        turnOrder,
+        turnIndex: 0,
+        currentTurnId: turnOrder[0],
+        roundCount: 0,
+        totalRoundsPlayed: room.totalRoundsPlayed + 1,
+        isRematch: accumulated > 0,
+        accumulatedPot: 0,
+      });
     }
   },
 });
@@ -437,11 +395,6 @@ async function advanceTurn(ctx: { db: any }, room: any, players: any[]) {
       }
     }
 
-    // 최대 라운드 초과 → 쇼다운
-    if (newRoundCount >= room.maxRounds) {
-      await determineWinner(ctx, room._id, players.filter((p) => !p.folded), room.pot);
-      return;
-    }
   }
 
   let attempts = 0;

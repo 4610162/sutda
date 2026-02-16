@@ -11,22 +11,21 @@
 @layer components {
   /* 카드 앞면 */
   .sutda-card {
-    @apply w-20 h-28 rounded-xl border-2 border-sutda-gold bg-white text-black
-           flex flex-col items-center justify-center font-bold
-           shadow-lg select-none;
+    @apply w-20 h-32 rounded-xl border-2 border-sutda-gold bg-white
+         overflow-hidden shadow-lg select-none;
   }
 
   /* 카드 뒷면 */
   .sutda-card-back {
-    @apply w-20 h-28 rounded-xl border-2 border-sutda-gold
+    @apply w-20 h-32 rounded-xl border-2 border-sutda-gold
            bg-gradient-to-br from-red-800 to-red-950
-           flex items-center justify-center shadow-lg select-none;
+           shadow-lg select-none;
   }
 
   /* 카드 뒤집기 애니메이션용 래퍼 */
   .card-flip-container {
     perspective: 600px;
-    @apply w-20 h-28;
+    @apply w-20 h-32;
   }
   .card-flipper {
     @apply relative w-full h-full;

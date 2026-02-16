@@ -79,8 +79,7 @@ function avatarColor(name: string): string {
       <template v-else-if="player.cardCount > 0">
         <!-- 뒷면 카드 -->
         <div v-for="i in player.cardCount" :key="i" class="sutda-card-back">
-          <span class="text-sutda-gold text-xl font-serif">花</span>
-        </div>
+          </div>
       </template>
     </div>
 

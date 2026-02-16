@@ -31,8 +31,6 @@ const {
   myPlayer,
   otherPlayers,
   isMyTurn,
-  isHost,
-  startGame,
   bet,
   setReady,
   leaveRoom,
@@ -182,14 +180,14 @@ async function handleLeave() {
             ></div>
           </div>
           <button
-            v-if="isHost && players.length >= 2"
-            @click="startGame"
+            v-if="players.length >= 2 && !myPlayer?.ready"
+            @click="setReady"
             class="btn-primary text-lg px-10 py-3"
           >
-            {{ isRematch ? '재경기 시작' : '게임 시작' }}
+            준비 완료
           </button>
-          <p v-else-if="!isHost" class="text-gray-400 text-sm">
-            방장이 게임을 시작합니다
+          <p v-else-if="myPlayer?.ready" class="text-green-400 text-sm">
+            준비 완료! 다른 플레이어를 기다리는 중...
           </p>
           <p v-else class="text-gray-400 text-sm">
             최소 2명이 필요합니다
