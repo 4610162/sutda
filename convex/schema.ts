@@ -35,6 +35,8 @@ export default defineSchema({
     lastBettorId: v.optional(v.string()),
     // 재경기 시 참여할 플레이어 목록 (무승부 플레이어만)
     rematchPlayerIds: v.optional(v.array(v.string())),
+    // 마지막 활동 시간 (비활성 방 자동 삭제용)
+    lastActivity: v.optional(v.number()),
   }).index("by_roomCode", ["roomCode"]),
 
   players: defineTable({

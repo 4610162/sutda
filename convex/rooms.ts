@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
 import { calculateRank, resolveSpecialHands, shuffleAndDeal } from "./game";
 
 const INITIAL_BALANCE = 100_000;
@@ -89,6 +89,7 @@ export const joinRoom = mutation({
         hostId: playerId,
         totalRoundsPlayed: 0,
         isRematch: false,
+        lastActivity: Date.now(),
       });
       room = (await ctx.db.get(roomId))!;
     }
@@ -99,6 +100,9 @@ export const joinRoom = mutation({
       .query("players")
       .withIndex("by_room", (q) => q.eq("roomId", room._id))
       .collect();
+
+    // 활동 시간 갱신
+    await ctx.db.patch(room._id, { lastActivity: Date.now() });
 
     const existing = players.find((p) => p.playerId === playerId);
     if (existing) {
@@ -165,8 +169,9 @@ export const placeBet = mutation({
       ? Math.max(...activePlayers.map((p) => p.totalBet))
       : me.totalBet;
 
-    // lastAction 기록 (UI 피드백용)
+    // lastAction 기록 (UI 피드백용) + 활동 시간 갱신
     await ctx.db.patch(me._id, { lastAction: ACTION_LABELS[action] ?? action });
+    await ctx.db.patch(room._id, { lastActivity: Date.now() });
 
     // lastBettorId 기록 (체크와 다이 제외 - 실제 베팅 액션만)
     if (action !== "check" && action !== "die") {
@@ -290,6 +295,8 @@ export const setReady = mutation({
     const me = players.find((p) => p.playerId === playerId);
     if (!me) throw new Error("플레이어를 찾을 수 없습니다.");
     await ctx.db.patch(me._id, { ready: true });
+    // 활동 시간 갱신
+    await ctx.db.patch(room._id, { lastActivity: Date.now() });
 
     // 잔액이 있는 플레이어 전원 레디 → 즉시 게임 시작 (playing)
     const updatedPlayers = players.map((p) => (p.playerId === playerId ? { ...p, ready: true } : p));
@@ -439,6 +446,9 @@ export const leaveRoom = mutation({
       await ctx.db.delete(room._id);
       return;
     }
+
+    // 활동 시간 갱신
+    await ctx.db.patch(room._id, { lastActivity: Date.now() });
 
     // 방장 재지정
     if (room.hostId === playerId && room.phase !== "playing") {
@@ -639,6 +649,33 @@ async function resolveWinnerWithResults(
     });
   }
 }
+
+// ─────────────────────────────────────────────
+// Internal Mutation: 비활성 방 자동 삭제 (1분 기준)
+// ─────────────────────────────────────────────
+export const cleanupInactiveRooms = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const cutoff = Date.now() - 60_000; // 1분 전
+    const rooms = await ctx.db.query("rooms").collect();
+
+    for (const room of rooms) {
+      // lastActivity가 없거나 1분 이상 비활성인 방
+      const lastActivity = room.lastActivity ?? 0;
+      if (lastActivity > cutoff) continue;
+
+      // 방에 속한 플레이어 모두 삭제
+      const players = await ctx.db
+        .query("players")
+        .withIndex("by_room", (q) => q.eq("roomId", room._id))
+        .collect();
+      for (const p of players) {
+        await ctx.db.delete(p._id);
+      }
+      await ctx.db.delete(room._id);
+    }
+  },
+});
 
 // 다이에 의한 단독 생존자 처리용 (기존 resolveWinner 유지)
 async function resolveWinner(

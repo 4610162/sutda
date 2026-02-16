@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { useGameStore } from "../composables/useGameStore";
 import PlayerSlot from "./PlayerSlot.vue";
 import SutdaCard from "./SutdaCard.vue";
@@ -56,24 +56,8 @@ const isFirstPlayer = computed(() => {
 // 라운드 결과에서 승자 ID
 const winnerId = computed(() => resultSummary.value?.winnerId ?? null);
 
-// 내 베팅 액션 피드백: 2.5초 후 자동 사라짐
-const myVisibleAction = ref<string | undefined>(undefined);
-let myActionTimer: ReturnType<typeof setTimeout> | null = null;
-
-watch(
-  () => myPlayer.value?.lastAction,
-  (newAction) => {
-    if (myActionTimer) clearTimeout(myActionTimer);
-    if (newAction) {
-      myVisibleAction.value = newAction;
-      myActionTimer = setTimeout(() => {
-        myVisibleAction.value = undefined;
-      }, 2500);
-    } else {
-      myVisibleAction.value = undefined;
-    }
-  },
-);
+// 내 베팅 액션: 새로운 베팅이 발생하여 값이 업데이트될 때까지 유지
+const myVisibleAction = computed(() => myPlayer.value?.lastAction);
 
 async function handleLeave() {
   await leaveRoom();
@@ -267,7 +251,7 @@ async function handleLeave() {
                 <span
                   v-if="myVisibleAction && phase === 'playing'"
                   class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/90 text-black
-                         whitespace-nowrap animate-bounce"
+                         whitespace-nowrap"
                 >
                   {{ myVisibleAction }}
                 </span>

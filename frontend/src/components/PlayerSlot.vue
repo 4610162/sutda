@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { computed } from "vue";
 import type { PublicPlayer, Phase } from "../types";
 import SutdaCard from "./SutdaCard.vue";
 
@@ -22,24 +22,8 @@ function avatarColor(name: string): string {
   return AVATAR_COLORS[hash];
 }
 
-// 베팅 액션 피드백: 2.5초 후 자동 사라짐
-const visibleAction = ref<string | undefined>(undefined);
-let actionTimer: ReturnType<typeof setTimeout> | null = null;
-
-watch(
-  () => props.player.lastAction,
-  (newAction) => {
-    if (actionTimer) clearTimeout(actionTimer);
-    if (newAction) {
-      visibleAction.value = newAction;
-      actionTimer = setTimeout(() => {
-        visibleAction.value = undefined;
-      }, 2500);
-    } else {
-      visibleAction.value = undefined;
-    }
-  },
-);
+// 베팅 액션: 새로운 베팅이 발생하여 값이 업데이트될 때까지 유지
+const visibleAction = computed(() => props.player.lastAction);
 </script>
 
 <template>
@@ -91,7 +75,7 @@ watch(
         <span
           v-if="visibleAction && phase === 'playing'"
           class="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-500/90 text-black
-                 whitespace-nowrap animate-bounce"
+                 whitespace-nowrap"
         >
           {{ visibleAction }}
         </span>

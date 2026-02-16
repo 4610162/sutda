@@ -1,7 +1,0 @@
-{
-  "$schema": "https://www.partykit.io/schema.json",
-  "name": "sutda-game-server",
-  "main": "src/server.ts",
-  "compatibilityDate": "2024-01-01",
-  "port": 1999
-}
