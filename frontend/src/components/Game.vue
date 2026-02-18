@@ -60,7 +60,7 @@ const isFirstPlayer = computed(() => {
 // 라운드 결과에서 승자 ID
 const winnerId = computed(() => resultSummary.value?.winnerId ?? null);
 
-// 내 베팅 액션: 새로운 베팅이 발생하여 값이 업데이트될 때까지 유지
+// 내 베팅 액션
 const myVisibleAction = computed(() => myPlayer.value?.lastAction);
 
 async function handleLeave() {
@@ -72,7 +72,6 @@ async function handleLeave() {
 
 // 내 족보 이름 (playing 중 표시)
 const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
-
 </script>
 
 <template>
@@ -85,20 +84,12 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
         <span class="text-gray-400 text-[10px]">{{ totalRoundsPlayed }}판</span>
       </div>
       <div class="flex items-center gap-1">
-        <button
-          @click="showHandGuide = true"
-          class="mobile-icon-btn"
-          title="족보 보기"
-        >
+        <button @click="showHandGuide = true" class="mobile-icon-btn" title="족보 보기">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
         </button>
-        <button
-          @click="handleLeave"
-          class="mobile-icon-btn text-gray-500 hover:text-red-400"
-          title="나가기"
-        >
+        <button @click="handleLeave" class="mobile-icon-btn text-gray-500 hover:text-red-400" title="나가기">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>
@@ -106,7 +97,7 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
       </div>
     </div>
 
-    <!-- ====== 메인 영역 (게임 테이블) ====== -->
+    <!-- ====== 메인 영역 ====== -->
     <div class="game-main flex flex-col min-h-0 min-w-0">
       <!-- 에러 메시지 -->
       <Transition name="slide">
@@ -126,90 +117,31 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
         >
           <div class="font-bold text-xs sm:text-sm">⚡ 구사 재경기!</div>
           <div class="text-[10px] sm:text-xs mt-0.5">동점으로 재경기가 시작됩니다. 판돈이 다음 라운드로 이월됩니다.</div>
-          <div class="text-amber-300 text-[10px] sm:text-xs font-bold mt-0.5">
-            이월 판돈: {{ pot.toLocaleString() }}원
-          </div>
+          <div class="text-amber-300 text-[10px] sm:text-xs font-bold mt-0.5">이월 판돈: {{ pot.toLocaleString() }}원</div>
         </div>
       </Transition>
 
       <!-- ====== 게임 테이블 ====== -->
       <div
-        class="game-table relative bg-gradient-to-b from-sutda-green/90 to-emerald-900/90
-               border-2 border-sutda-gold/40 rounded-2xl
-               shadow-2xl flex-1 min-h-0"
+        class="game-table bg-gradient-to-b from-sutda-green/90 to-emerald-900/90
+               border-2 border-sutda-gold/40 rounded-2xl shadow-2xl flex-1 min-h-0"
       >
-        <!-- 판돈: 절대 중앙 고정 -->
-        <div class="pot-overlay">
-          <!-- 판돈 (playing / result) -->
-          <div
-            v-if="phase !== 'waiting' && phase !== 'ended'"
-            class="pot-display text-center"
-          >
-            <div class="text-gray-400 text-[10px] sm:text-[10px] uppercase tracking-wider mb-0.5">판돈</div>
-            <div class="text-sutda-gold text-xl sm:text-2xl font-bold pot-amount">
-              {{ pot.toLocaleString() }}원
-            </div>
-            <!-- result: 승자 표시 -->
-            <div v-if="phase === 'result' && resultSummary" class="mt-0.5 sm:mt-1">
-              <div class="text-white font-bold text-sm sm:text-sm">
-                {{ resultSummary.winnerName }}
-                <span class="text-sutda-gold ml-1">승리!</span>
-              </div>
-              <div class="text-yellow-300 text-xs sm:text-xs">{{ resultSummary.winnerHand }}</div>
-            </div>
-            <!-- playing: 라운드 표시 -->
-            <div v-if="phase === 'playing'" class="text-gray-300 text-[10px] sm:text-[10px] mt-0.5">
-              배팅 라운드 {{ roundCount + 1 }}
-            </div>
+        <!-- ① 부채꼴 상대 플레이어 아크 (상단 외곽) -->
+        <div class="stadium-arc">
+          <!-- 좌측 상단 슬롯 (3~4인 게임용) -->
+          <div class="arc-slot arc-slot--left">
+            <PlayerSlot
+              v-if="otherPlayers.length >= 2 && otherPlayers[0]"
+              :player="otherPlayers[0]"
+              :is-current-turn="currentTurnId === otherPlayers[0].id"
+              :phase="phase"
+              :is-winner="phase === 'result' && otherPlayers[0].id === winnerId"
+              position="left"
+            />
           </div>
 
-          <!-- 대기 중 -->
-          <div v-if="phase === 'waiting'" class="text-center">
-            <div class="text-gray-300 text-xs sm:text-sm mb-1 sm:mb-1.5">
-              플레이어 대기 중 ({{ players.length }}/4)
-            </div>
-            <div class="flex gap-2 justify-center mb-2">
-              <div
-                v-for="i in 4"
-                :key="i"
-                class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"
-                :class="i <= players.length ? 'bg-green-500' : 'bg-gray-600'"
-              ></div>
-            </div>
-            <button
-              v-if="players.length >= 2 && !myPlayer?.ready"
-              @click="setReady"
-              class="btn-primary text-xs sm:text-sm px-4 py-1.5 sm:px-6 sm:py-2"
-            >
-              준비 완료
-            </button>
-            <p v-else-if="myPlayer?.ready" class="text-green-400 text-[10px] sm:text-xs">
-              준비 완료! 다른 플레이어를 기다리는 중...
-            </p>
-            <p v-else class="text-gray-400 text-[10px] sm:text-xs">
-              최소 2명이 필요합니다
-            </p>
-
-            <!-- 봇 관리 (대기 중일 때만) -->
-            <div class="mt-2 w-full max-w-md mx-auto">
-              <BotManager
-                :bot-players="botPlayers"
-                :player-count="players.length"
-                @add-bot="addBot"
-                @remove-bot="removeBot"
-              />
-            </div>
-          </div>
-
-          <!-- 게임 종료 -->
-          <div v-if="phase === 'ended'" class="text-center">
-            <div class="text-gray-400 text-xs">게임이 종료되었습니다</div>
-          </div>
-        </div>
-
-        <div class="table-grid">
-          <!-- 상단: 2인일 때 첫 번째 상대, 3인 이상일 때 두 번째 상대 -->
-          <div class="table-top">
+          <!-- 중앙 상단 슬롯 (2인: 첫 상대 / 3~4인: 두 번째 상대) -->
+          <div class="arc-slot arc-slot--top">
             <PlayerSlot
               v-if="otherPlayers.length === 1 && otherPlayers[0]"
               :player="otherPlayers[0]"
@@ -224,28 +156,15 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
               :phase="phase"
               :is-winner="phase === 'result' && otherPlayers[1].id === winnerId"
             />
-            <div v-else class="flex flex-col items-center gap-1 p-2 opacity-30">
-              <span class="text-xs text-gray-500">대기 중</span>
+            <!-- 빈 슬롯 플레이스홀더 -->
+            <div v-else class="empty-slot-placeholder text-center opacity-20 pt-2">
+              <div class="w-8 h-12 sm:w-10 sm:h-16 bg-gray-700/50 rounded-lg mx-auto mb-1 border border-dashed border-gray-600/50"></div>
+              <div class="text-[9px] text-gray-600">대기 중</div>
             </div>
           </div>
 
-          <!-- 좌측 -->
-          <div class="table-left">
-            <PlayerSlot
-              v-if="otherPlayers.length >= 2 && otherPlayers[0]"
-              :player="otherPlayers[0]"
-              :is-current-turn="currentTurnId === otherPlayers[0].id"
-              :phase="phase"
-              :is-winner="phase === 'result' && otherPlayers[0].id === winnerId"
-              position="left"
-            />
-          </div>
-
-          <!-- 중앙: 투명 스페이서 -->
-          <div class="table-center"></div>
-
-          <!-- 우측 -->
-          <div class="table-right">
+          <!-- 우측 상단 슬롯 (4인 게임용) -->
+          <div class="arc-slot arc-slot--right">
             <PlayerSlot
               v-if="otherPlayers.length >= 3 && otherPlayers[2]"
               :player="otherPlayers[2]"
@@ -255,152 +174,200 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
               position="right"
             />
           </div>
+        </div>
 
-          <!-- 하단: 내 영역 -->
-          <div class="table-bottom flex flex-col items-center gap-1 sm:gap-1">
-            <!-- 내 족보 이름 (playing 중 카드 위에 표시) -->
-            <div
-              v-if="myHandName && phase === 'playing'"
-              class="my-hand-badge"
-            >
-              {{ myHandName }}
+        <!-- ② 녹색 필드 (중앙 시원한 공간 + 상태별 콘텐츠) -->
+        <div class="green-field">
+          <!-- 대기 중 -->
+          <div v-if="phase === 'waiting'" class="flex flex-col items-center gap-2 w-full">
+            <div class="text-gray-300 text-xs sm:text-sm">플레이어 대기 중 ({{ players.length }}/4)</div>
+            <div class="flex gap-2 justify-center">
+              <div
+                v-for="i in 4" :key="i"
+                class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-colors duration-300"
+                :class="i <= players.length ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]' : 'bg-gray-700'"
+              ></div>
             </div>
-
-            <!-- 내 카드 -->
-            <div class="flex gap-2 sm:gap-2">
-              <template v-if="myPlayer?.cards?.length">
-                <SutdaCard
-                  v-for="card in myPlayer.cards"
-                  :key="card.id"
-                  :card="card"
-                  :face-up="true"
-                />
-              </template>
-            </div>
-
-            <!-- 내 이름 & 잔액 (한 줄로 압축) -->
-            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center">
-              <span
-                class="font-bold text-sm sm:text-sm"
-                :class="
-                  phase === 'result' && winnerId === playerId
-                    ? 'text-sutda-gold'
-                    : isMyTurn
-                    ? 'text-yellow-300'
-                    : 'text-white'
-                "
-              >
-                {{ myPlayer?.name || playerName }}
-              </span>
-              <span v-if="myPlayer?.isHost" class="text-[10px] sm:text-[10px] bg-sutda-gold/80 text-black px-1 py-0.5 rounded-full font-bold leading-none">방장</span>
-              <!-- 내 베팅 액션 텍스트 -->
-              <Transition name="action-fade">
-                <span
-                  v-if="myVisibleAction && phase === 'playing'"
-                  class="text-[10px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/90 text-black whitespace-nowrap"
-                >
-                  {{ myVisibleAction }}
-                </span>
-              </Transition>
-              <!-- 내 승리 배지 -->
-              <span
-                v-if="phase === 'result' && winnerId === playerId"
-                class="text-[10px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sutda-gold text-black animate-pulse"
-              >
-                승리
-              </span>
-              <!-- 잔액 + 베팅 (이름 옆에 한 줄) -->
-              <span class="text-[10px] sm:text-[10px] text-green-300">{{ (myPlayer?.balance ?? 0).toLocaleString() }}원</span>
-              <span v-if="myPlayer?.totalBet" class="text-[10px] sm:text-[10px] text-yellow-300">베팅 {{ myPlayer.totalBet.toLocaleString() }}원</span>
-            </div>
-
-            <!-- 족보 -->
-            <div
-              v-if="myPlayer?.hand"
-              class="bg-sutda-gold/20 text-sutda-gold px-2.5 py-0.5 rounded-full text-xs sm:text-xs font-bold"
-            >
-              {{ myPlayer.hand.name }}
-            </div>
-
-            <!-- 하단 액션 영역 -->
-            <div class="bottom-action-area">
-              <!-- 다음 라운드 준비 버튼 -->
-              <div v-if="phase === 'result'">
-                <button
-                  v-if="!myPlayer?.ready"
-                  @click="setReady"
-                  class="btn-primary px-4 py-1 sm:px-6 sm:py-1.5 text-xs sm:text-sm"
-                >
-                  다음 라운드 준비
-                </button>
-                <p v-else class="text-green-400 text-[10px] sm:text-xs animate-pulse">
-                  다른 플레이어를 기다리는 중...
-                </p>
-              </div>
-
-              <!-- 베팅 영역 -->
-              <template v-else-if="phase === 'playing'">
-                <div
-                  v-if="!myPlayer?.folded && isMyTurn"
-                  class="bet-buttons"
-                >
-                  <template v-if="!hasRaise">
-                    <button @click="bet('check')" class="btn-secondary btn-bet-mobile" title="베팅 없이 턴 넘김">체크</button>
-                    <button
-                      v-if="isFirstPlayer"
-                      @click="bet('pping')"
-                      class="btn-secondary btn-bet-mobile border-green-500 text-green-300 hover:bg-green-800/40"
-                      title="최소 금액(1,000원) 베팅"
-                    >삥</button>
-                    <button @click="bet('half')" class="btn-primary btn-bet-mobile" title="판돈의 절반">하프</button>
-                    <button @click="bet('quarter')" class="btn-secondary btn-bet-mobile" title="판돈의 1/4">쿼터</button>
-                  </template>
-                  <template v-else>
-                    <button @click="bet('call')" class="btn-primary btn-bet-mobile bg-blue-700 hover:bg-blue-600 border-blue-400" title="앞선 베팅에 맞춰 콜">콜</button>
-                    <button @click="bet('ddadang')" class="btn-primary btn-bet-mobile bg-orange-700 hover:bg-orange-600 border-orange-400" title="콜하고 콜 금액의 2배 추가 베팅">따당</button>
-                    <button @click="bet('half')" class="btn-primary btn-bet-mobile" title="판돈의 절반">하프</button>
-                    <button @click="bet('quarter')" class="btn-secondary btn-bet-mobile" title="판돈의 1/4">쿼터</button>
-                  </template>
-                  <button @click="bet('die')" class="btn-danger btn-bet-mobile">다이</button>
-                </div>
-                <p v-else-if="!myPlayer?.folded" class="text-gray-400 text-[10px] sm:text-xs animate-pulse text-center">
-                  상대방의 턴을 기다리는 중...
-                </p>
-                <p v-else class="text-gray-500 text-[10px] sm:text-xs text-center">다이 처리됨</p>
-              </template>
+            <button
+              v-if="players.length >= 2 && !myPlayer?.ready"
+              @click="setReady"
+              class="btn-primary text-xs sm:text-sm px-4 py-1.5 sm:px-6 sm:py-2"
+            >준비 완료</button>
+            <p v-else-if="myPlayer?.ready" class="text-green-400 text-[10px] sm:text-xs animate-pulse">
+              준비 완료! 다른 플레이어를 기다리는 중...
+            </p>
+            <p v-else class="text-gray-500 text-[10px] sm:text-xs">최소 2명이 필요합니다</p>
+            <div class="mt-1 w-full max-w-xs sm:max-w-md mx-auto">
+              <BotManager
+                :bot-players="botPlayers"
+                :player-count="players.length"
+                @add-bot="addBot"
+                @remove-bot="removeBot"
+              />
             </div>
           </div>
-        </div><!-- /table-grid -->
-      </div>
-    </div>
+
+          <!-- 게임 종료 -->
+          <div v-else-if="phase === 'ended'" class="text-center">
+            <div class="text-gray-400 text-xs">게임이 종료되었습니다</div>
+          </div>
+
+          <!-- playing: 테이블 장식 (은은한 중앙 필드 효과) -->
+          <div v-else-if="phase === 'playing'" class="felt-decoration">
+            <div class="felt-ring"></div>
+          </div>
+
+          <!-- result: 중앙 필드 (빈 공간) -->
+          <div v-else class=""></div>
+        </div>
+
+        <!-- ③ 판돈 바 (내 카드 바로 위에 배치 - 핵심) -->
+        <div v-if="phase === 'playing' || phase === 'result'" class="pot-section">
+          <div class="pot-bar">
+            <div class="flex items-center gap-2 justify-center">
+              <!-- 코인 아이콘 -->
+              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="10" fill="rgba(212,168,67,0.15)" stroke="rgba(212,168,67,0.6)" stroke-width="1.5"/>
+                <circle cx="12" cy="12" r="6" fill="rgba(212,168,67,0.2)"/>
+                <path d="M10 9.5c0-.83.67-1.5 1.5-1.5h1c.83 0 1.5.67 1.5 1.5 0 .55-.3 1.03-.74 1.28C13.7 11.06 14 11.55 14 12.1c0 .88-.67 1.6-1.5 1.6h-.06c-.06.17-.16.31-.3.41" stroke="rgba(212,168,67,0.9)" stroke-width="1.2" stroke-linecap="round"/>
+                <path d="M12 8v1M12 15v1" stroke="rgba(212,168,67,0.9)" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+              <span class="text-gray-400 text-[10px] sm:text-[11px] uppercase tracking-wider font-medium">판돈</span>
+              <span class="text-sutda-gold font-bold text-base sm:text-xl pot-amount leading-none">
+                {{ pot.toLocaleString() }}원
+              </span>
+              <span v-if="phase === 'playing'" class="text-gray-500/60 text-[9px] sm:text-[10px] font-medium">
+                · R{{ roundCount + 1 }}
+              </span>
+            </div>
+            <!-- 결과: 승자 정보 -->
+            <div v-if="phase === 'result' && resultSummary" class="text-center mt-1">
+              <span class="text-white text-xs sm:text-sm font-semibold">{{ resultSummary.winnerName }}</span>
+              <span class="text-sutda-gold text-xs ml-1">승리!</span>
+              <span class="text-yellow-300/80 text-[10px] ml-1">{{ resultSummary.winnerHand }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ④ 내 카드 영역 -->
+        <div class="my-cards-area">
+          <!-- 족보 뱃지 (playing 중, 카드 위) -->
+          <div v-if="myHandName && phase === 'playing'" class="my-hand-badge">
+            {{ myHandName }}
+          </div>
+          <!-- 내 카드 -->
+          <div class="flex gap-2 sm:gap-2">
+            <template v-if="myPlayer?.cards?.length">
+              <SutdaCard
+                v-for="card in myPlayer.cards"
+                :key="card.id"
+                :card="card"
+                :face-up="true"
+              />
+            </template>
+          </div>
+        </div>
+
+        <!-- ⑤ 베팅 액션 영역 -->
+        <div class="bet-area">
+          <!-- 다음 라운드 준비 -->
+          <div v-if="phase === 'result'">
+            <button
+              v-if="!myPlayer?.ready"
+              @click="setReady"
+              class="btn-primary px-4 py-1 sm:px-6 sm:py-1.5 text-xs sm:text-sm"
+            >다음 라운드 준비</button>
+            <p v-else class="text-green-400 text-[10px] sm:text-xs animate-pulse">
+              다른 플레이어를 기다리는 중...
+            </p>
+          </div>
+
+          <!-- 베팅 버튼 -->
+          <template v-else-if="phase === 'playing'">
+            <div v-if="!myPlayer?.folded && isMyTurn" class="bet-buttons">
+              <template v-if="!hasRaise">
+                <button @click="bet('check')" class="btn-secondary btn-bet-mobile" title="베팅 없이 턴 넘김">체크</button>
+                <button
+                  v-if="isFirstPlayer"
+                  @click="bet('pping')"
+                  class="btn-secondary btn-bet-mobile border-green-500 text-green-300 hover:bg-green-800/40"
+                  title="최소 금액(1,000원) 베팅"
+                >삥</button>
+                <button @click="bet('half')" class="btn-primary btn-bet-mobile" title="판돈의 절반">하프</button>
+                <button @click="bet('quarter')" class="btn-secondary btn-bet-mobile" title="판돈의 1/4">쿼터</button>
+              </template>
+              <template v-else>
+                <button @click="bet('call')" class="btn-primary btn-bet-mobile bg-blue-700 hover:bg-blue-600 border-blue-400" title="앞선 베팅에 맞춰 콜">콜</button>
+                <button @click="bet('ddadang')" class="btn-primary btn-bet-mobile bg-orange-700 hover:bg-orange-600 border-orange-400" title="콜하고 콜 금액의 2배 추가 베팅">따당</button>
+                <button @click="bet('half')" class="btn-primary btn-bet-mobile" title="판돈의 절반">하프</button>
+                <button @click="bet('quarter')" class="btn-secondary btn-bet-mobile" title="판돈의 1/4">쿼터</button>
+              </template>
+              <button @click="bet('die')" class="btn-danger btn-bet-mobile">다이</button>
+            </div>
+            <p v-else-if="!myPlayer?.folded" class="text-gray-400 text-[10px] sm:text-xs animate-pulse text-center">
+              상대방의 턴을 기다리는 중...
+            </p>
+            <p v-else class="text-gray-500 text-[10px] sm:text-xs text-center">다이 처리됨</p>
+          </template>
+        </div>
+
+        <!-- ⑥ 내 정보 바 (최하단 수평 바) -->
+        <div class="my-info-bar">
+          <!-- 왼쪽: 이름 + 뱃지들 -->
+          <div class="flex items-center gap-1.5 min-w-0 flex-wrap">
+            <span
+              class="font-bold text-sm truncate"
+              :class="
+                phase === 'result' && winnerId === playerId ? 'text-sutda-gold' :
+                isMyTurn ? 'text-yellow-300' : 'text-white'
+              "
+            >{{ myPlayer?.name || playerName }}</span>
+            <span
+              v-if="myPlayer?.isHost"
+              class="text-[9px] sm:text-[10px] bg-sutda-gold/80 text-black px-1.5 py-0.5 rounded-full font-bold leading-none flex-shrink-0"
+            >방장</span>
+            <Transition name="action-fade">
+              <span
+                v-if="myVisibleAction && phase === 'playing'"
+                class="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/90 text-black whitespace-nowrap flex-shrink-0"
+              >{{ myVisibleAction }}</span>
+            </Transition>
+            <span
+              v-if="phase === 'result' && winnerId === playerId"
+              class="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sutda-gold text-black animate-pulse flex-shrink-0"
+            >승리</span>
+          </div>
+          <!-- 오른쪽: 족보 + 잔액 + 베팅 -->
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <span
+              v-if="myPlayer?.hand && (phase === 'result' || phase === 'ended')"
+              class="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sutda-gold/20 text-sutda-gold"
+            >{{ myPlayer.hand.name }}</span>
+            <span class="text-green-300 text-[10px] sm:text-[11px]">{{ (myPlayer?.balance ?? 0).toLocaleString() }}원</span>
+            <span v-if="myPlayer?.totalBet" class="text-yellow-300 text-[10px]">베팅 {{ myPlayer.totalBet.toLocaleString() }}원</span>
+          </div>
+        </div>
+      </div><!-- /game-table -->
+    </div><!-- /game-main -->
 
     <!-- ====== 우측 사이드바 (sm 이상에서만 표시) ====== -->
     <aside class="game-sidebar hidden sm:flex">
       <div class="flex flex-col gap-3">
-        <!-- 방 정보 -->
         <div class="sidebar-section">
           <div class="text-gray-400 text-[10px] uppercase tracking-wider mb-1">방 정보</div>
           <div class="text-white text-sm font-medium">{{ roomCode }}</div>
           <div class="text-gray-400 text-[10px] mt-0.5">{{ totalRoundsPlayed }}판 진행</div>
         </div>
-
-        <!-- 족보 버튼 -->
         <button
           @click="showHandGuide = true"
           class="w-full text-gray-300 hover:text-sutda-gold text-xs transition-colors border
                  border-gray-600 hover:border-sutda-gold/50 rounded-lg px-2 py-1.5 text-center"
-        >
-          족보 보기
-        </button>
-
-        <!-- 나가기 버튼 -->
+        >족보 보기</button>
         <button
           @click="handleLeave"
           class="w-full text-gray-400 hover:text-red-400 text-xs transition-colors border
                  border-gray-700 hover:border-red-500/50 rounded-lg px-2 py-1.5 text-center"
-        >
-          나가기
-        </button>
+        >나가기</button>
       </div>
     </aside>
 
@@ -422,7 +389,7 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
 </template>
 
 <style scoped>
-/* 전체 레이아웃: 사이드바 + 메인 (뷰포트에 맞춤) */
+/* ===== 전체 레이아웃 ===== */
 .game-layout {
   display: flex;
   flex-direction: column;
@@ -438,7 +405,7 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   }
 }
 
-/* 모바일 상단 바 */
+/* ===== 모바일 상단 바 ===== */
 .mobile-topbar {
   display: flex;
   align-items: center;
@@ -465,14 +432,14 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* 메인 게임 영역 */
+/* ===== 메인 게임 영역 ===== */
 .game-main {
   flex: 1;
   min-width: 0;
   min-height: 0;
 }
 
-/* 우측 사이드바 (sm 이상) */
+/* ===== 우측 사이드바 ===== */
 .game-sidebar {
   width: 100px;
   flex-shrink: 0;
@@ -487,7 +454,7 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   padding: 0.5rem;
 }
 
-/* 게임 테이블 */
+/* ===== 게임 테이블 (flex column) ===== */
 .game-table {
   width: 100%;
   display: flex;
@@ -501,146 +468,146 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   }
 }
 
-/* 판돈 오버레이: 절대 중앙 고정 */
-.pot-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 5;
-  pointer-events: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* 판돈 표시 강조 */
-.pot-display {
-  background: rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(218, 165, 32, 0.4);
-  border-radius: 1rem;
-  padding: 0.5rem 1rem;
-  backdrop-filter: blur(4px);
-}
-@media (min-width: 640px) {
-  .pot-display {
-    padding: 0.5rem 1.25rem;
-  }
-}
-
-/* 판돈 금액 애니메이션 */
-.pot-amount {
-  text-shadow: 0 0 12px rgba(218, 165, 32, 0.5);
-}
-
-/* 내 족보 뱃지 (playing 중 카드 위에 표시) */
-.my-hand-badge {
-  background: linear-gradient(135deg, rgba(218, 165, 32, 0.25), rgba(218, 165, 32, 0.15));
-  border: 1px solid rgba(218, 165, 32, 0.5);
-  color: #fbbf24;
-  font-weight: 700;
-  font-size: 0.75rem;
-  padding: 0.125rem 0.625rem;
-  border-radius: 9999px;
-  text-shadow: 0 0 6px rgba(218, 165, 32, 0.4);
-}
-
-/* 4방향 그리드 레이아웃 */
-.table-grid {
+/* ===== ① 부채꼴 아크 레이아웃 ===== */
+.stadium-arc {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  grid-template-rows: auto 1fr auto;
-  grid-template-areas:
-    "top    top    top"
-    "left center right"
-    "bottom bottom bottom";
-  flex: 1;
-  padding: 0.125rem 0.25rem;
-  min-height: 0;
-}
-@media (min-width: 640px) {
-  .table-grid {
-    padding: 0.5rem;
-  }
+  grid-template-columns: 1fr 1fr 1fr;
+  width: 100%;
+  flex-shrink: 0;
+  padding: 0.25rem 0.25rem 0;
+  column-gap: 0.125rem;
 }
 
-.table-top {
-  grid-area: top;
+.arc-slot {
   display: flex;
-  justify-content: center;
   align-items: flex-start;
-  padding: 0;
 }
+
+/* 좌측 슬롯: 왼쪽 정렬, 하단 오프셋으로 부채꼴 효과 */
+.arc-slot--left {
+  justify-content: flex-start;
+  padding-top: 1.75rem;
+}
+
+/* 중앙 슬롯: 정중앙, 상단에 배치 (아크 꼭짓점) */
+.arc-slot--top {
+  justify-content: center;
+  padding-top: 0;
+}
+
+/* 우측 슬롯: 오른쪽 정렬, 하단 오프셋으로 부채꼴 효과 */
+.arc-slot--right {
+  justify-content: flex-end;
+  padding-top: 1.75rem;
+}
+
 @media (min-width: 640px) {
-  .table-top {
-    padding: 0.125rem 0;
+  .arc-slot--left,
+  .arc-slot--right {
+    padding-top: 2.5rem;
   }
 }
 
-.table-left {
-  grid-area: left;
+/* ===== ② 녹색 필드 (중앙 넓은 공간) ===== */
+.green-field {
+  flex: 1;
+  min-height: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0;
-}
-@media (min-width: 640px) {
-  .table-left {
-    padding: 0 0.25rem;
-  }
+  padding: 0.5rem;
+  overflow-y: auto;
 }
 
-.table-center {
-  grid-area: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 80px;
-}
-@media (min-width: 640px) {
-  .table-center {
-    min-height: 110px;
-  }
-}
-
-.table-right {
-  grid-area: right;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-@media (min-width: 640px) {
-  .table-right {
-    padding: 0 0.25rem;
-  }
-}
-
-.table-bottom {
-  grid-area: bottom;
-  padding-top: 0.25rem;
-}
-@media (min-width: 640px) {
-  .table-bottom {
-    padding-top: 0.125rem;
-  }
-}
-
-/* 하단 액션 영역 */
-.bottom-action-area {
-  min-height: 40px;
+/* 게임 테이블 장식 (playing 중 중앙 원형 아이콘) */
+.felt-decoration {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+  height: 100%;
+}
+
+.felt-ring {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  border: 2px solid rgba(212, 168, 67, 0.12);
+  box-shadow:
+    0 0 0 8px rgba(212, 168, 67, 0.05),
+    0 0 0 16px rgba(212, 168, 67, 0.03);
 }
 @media (min-width: 640px) {
-  .bottom-action-area {
-    min-height: 40px;
+  .felt-ring {
+    width: 64px;
+    height: 64px;
   }
 }
 
-/* 베팅 버튼 컨테이너: 모바일에서 넓은 터치 영역 */
+/* ===== ③ 판돈 섹션 (내 카드 바로 위) ===== */
+.pot-section {
+  display: flex;
+  justify-content: center;
+  padding: 0 1rem 0.375rem;
+  flex-shrink: 0;
+}
+
+.pot-bar {
+  background: rgba(0, 0, 0, 0.52);
+  border: 1px solid rgba(212, 168, 67, 0.38);
+  border-radius: 1rem;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0.4rem 1.25rem;
+  min-width: 200px;
+  text-align: center;
+  box-shadow: 0 2px 16px rgba(212, 168, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+@media (min-width: 640px) {
+  .pot-bar {
+    min-width: 250px;
+    padding: 0.5rem 1.5rem;
+  }
+}
+
+.pot-amount {
+  text-shadow: 0 0 14px rgba(218, 165, 32, 0.65);
+}
+
+/* ===== ④ 내 카드 영역 ===== */
+.my-cards-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0 0.5rem;
+  flex-shrink: 0;
+}
+
+/* 내 족보 뱃지 */
+.my-hand-badge {
+  background: linear-gradient(135deg, rgba(218, 165, 32, 0.22), rgba(218, 165, 32, 0.12));
+  border: 1px solid rgba(218, 165, 32, 0.5);
+  color: #fbbf24;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.125rem 0.75rem;
+  border-radius: 9999px;
+  text-shadow: 0 0 6px rgba(218, 165, 32, 0.4);
+  letter-spacing: 0.025em;
+}
+
+/* ===== ⑤ 베팅 영역 ===== */
+.bet-area {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.5rem;
+  flex-shrink: 0;
+}
+
 .bet-buttons {
   display: flex;
   align-items: center;
@@ -648,16 +615,8 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   flex-wrap: wrap;
   justify-content: center;
   width: 100%;
-  padding: 0 0.25rem;
-}
-@media (min-width: 640px) {
-  .bet-buttons {
-    gap: 0.375rem;
-    padding: 0;
-  }
 }
 
-/* 모바일 베팅 버튼: 더 큰 터치 영역 */
 .btn-bet-mobile {
   padding: 0.5rem 0.75rem;
   font-size: 0.8125rem;
@@ -674,6 +633,23 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   }
 }
 
+/* ===== ⑥ 내 정보 바 (최하단 수평 바) ===== */
+.my-info-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.55);
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom-left-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+}
+
+/* ===== 애니메이션 ===== */
 .slide-enter-active,
 .slide-leave-active {
   transition: all 0.3s ease;
@@ -683,6 +659,7 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   opacity: 0;
   transform: translateY(-10px);
 }
+
 .action-fade-enter-active {
   transition: all 0.3s ease;
 }

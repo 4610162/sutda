@@ -12,63 +12,49 @@ const props = defineProps<{
   position?: "left" | "right" | "top";
 }>();
 
-// 베팅 액션: 새로운 베팅이 발생하여 값이 업데이트될 때까지 유지
 const visibleAction = computed(() => props.player.lastAction);
 </script>
 
 <template>
   <div
-    class="player-slot flex flex-col items-center gap-0 sm:gap-0.5 p-1 sm:p-2 rounded-xl transition-all duration-300"
+    class="player-slot transition-all duration-300"
     :class="[
       {
-        'ring-2 ring-yellow-400 bg-yellow-400/10': isCurrentTurn && !player.folded,
-        'opacity-40': player.folded,
-        'ring-2 ring-sutda-gold bg-sutda-gold/10': isWinner && phase === 'result' && !player.folded,
+        'is-current-turn': isCurrentTurn && !player.folded,
+        'is-winner': isWinner && phase === 'result' && !player.folded,
+        'is-folded': player.folded,
       },
       position === 'left' || position === 'right' ? 'player-slot--side' : '',
     ]"
   >
-    <!-- 이름 + 뱃지 + 액션 (한 줄) -->
-    <div class="flex items-center gap-0.5 sm:gap-1 max-w-full flex-wrap justify-center">
-      <span
-        class="text-xs sm:text-sm font-bold max-w-[70px] sm:max-w-[100px] truncate"
-        :class="{
-          'text-yellow-300': isCurrentTurn && !player.folded && !isWinner,
-          'text-sutda-gold': isWinner && phase === 'result' && !player.folded,
-          'text-gray-400 line-through': player.folded,
-          'text-white': !isCurrentTurn && !player.folded && !isWinner,
-        }"
-      >
-        {{ player.name }}
-      </span>
-      <span
-        v-if="player.isBot"
-        class="text-[9px] sm:text-[10px] bg-purple-500/80 text-white px-1 sm:px-1 py-0.5 rounded-full font-bold leading-none"
-      >봇</span>
-      <span
-        v-else-if="player.isHost"
-        class="text-[9px] sm:text-[10px] bg-sutda-gold/80 text-black px-1 sm:px-1 py-0.5 rounded-full font-bold leading-none"
-      >방장</span>
-      <!-- 승리 배지 (이름 옆) -->
+    <!-- 이름 + 뱃지 행 -->
+    <div class="name-row">
+      <span class="player-name" :class="{
+        'name--turn': isCurrentTurn && !player.folded && !isWinner,
+        'name--winner': isWinner && phase === 'result' && !player.folded,
+        'name--folded': player.folded,
+      }">{{ player.name }}</span>
+
+      <span v-if="player.isBot" class="badge badge--bot">봇</span>
+      <span v-else-if="player.isHost" class="badge badge--host">방장</span>
+
+      <!-- 승리 배지 -->
       <span
         v-if="isWinner && phase === 'result' && !player.folded"
-        class="text-[9px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full bg-sutda-gold text-black animate-pulse"
-      >
-        승리
-      </span>
-      <!-- 베팅 액션 (이름 옆) -->
-      <Transition name="action-fade">
-        <span
-          v-if="visibleAction && phase === 'playing'"
-          class="text-[9px] sm:text-[10px] font-bold px-1 sm:px-1.5 py-0.5 rounded-full bg-amber-500/90 text-black whitespace-nowrap"
-        >
-          {{ visibleAction }}
-        </span>
-      </Transition>
+        class="badge badge--win animate-pulse"
+      >승리</span>
     </div>
 
+    <!-- 베팅 액션 배지 -->
+    <Transition name="action-fade">
+      <span
+        v-if="visibleAction && phase === 'playing'"
+        class="action-badge"
+      >{{ visibleAction }}</span>
+    </Transition>
+
     <!-- 카드 영역 -->
-    <div class="card-area flex gap-1 sm:gap-1 flex-shrink-0">
+    <div class="card-area">
       <template v-if="player.cards.length > 0">
         <SutdaCard
           v-for="card in player.cards"
@@ -82,76 +68,244 @@ const visibleAction = computed(() => props.player.lastAction);
       </template>
     </div>
 
-    <!-- 족보 (result 때만 표시, 공간 예약 없이) -->
+    <!-- 족보 (result/ended 때만) -->
     <span
       v-if="(phase === 'result' || phase === 'ended') && player.hand"
-      class="text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-1.5 py-0.5 rounded-full"
-      :class="player.folded ? 'bg-gray-700 text-gray-400' : 'bg-sutda-gold/20 text-sutda-gold'"
-    >
-      {{ player.folded ? '다이' : player.hand.name }}
-    </span>
+      class="hand-badge"
+      :class="player.folded ? 'hand-badge--folded' : 'hand-badge--active'"
+    >{{ player.folded ? '다이' : player.hand.name }}</span>
 
-    <!-- 잔액 + 베팅 (한 줄) -->
-    <div class="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px]">
-      <span class="text-green-300/70">{{ player.balance.toLocaleString() }}원</span>
-      <span v-if="player.totalBet > 0" class="text-yellow-300">베팅 {{ player.totalBet.toLocaleString() }}원</span>
+    <!-- 잔액 + 베팅 -->
+    <div class="balance-row">
+      <span class="balance-text">{{ player.balance.toLocaleString() }}원</span>
+      <span v-if="player.totalBet > 0" class="bet-text">+{{ player.totalBet.toLocaleString() }}</span>
     </div>
 
-    <!-- 레디 표시 (result 때만) -->
-    <span
-      v-if="phase === 'result' && player.ready"
-      class="text-[9px] sm:text-[10px] font-bold text-green-400"
-    >
-      준비완료
-    </span>
+    <!-- 준비완료 (result 때) -->
+    <span v-if="phase === 'result' && player.ready" class="ready-text">준비완료</span>
   </div>
 </template>
 
 <style scoped>
+/* ===== 슬롯 기본 구조 ===== */
 .player-slot {
-  min-width: 95px;
-  width: 95px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: 0.375rem 0.375rem 0.3rem;
+  border-radius: 0.75rem;
+  min-width: 88px;
+  width: 88px;
   position: relative;
-  z-index: 0;
   isolation: isolate;
   overflow: visible;
+
+  /* 글래스 카드 기본 */
+  background: rgba(0, 0, 0, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 @media (min-width: 640px) {
   .player-slot {
-    min-width: 130px;
-    width: 130px;
+    min-width: 120px;
+    width: 120px;
+    padding: 0.5rem 0.5rem 0.375rem;
+    border-radius: 0.875rem;
   }
 }
 
+/* 사이드 슬롯 (좌/우) */
 .player-slot--side {
-  width: 90px;
-  min-width: 90px;
+  width: 82px;
+  min-width: 82px;
 }
 @media (min-width: 640px) {
   .player-slot--side {
-    width: 130px;
-    min-width: 130px;
+    width: 118px;
+    min-width: 118px;
   }
 }
 
+/* ===== 상태별 슬롯 스타일 ===== */
+/* 현재 턴 */
+.is-current-turn {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.55);
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.25), 0 0 12px rgba(251, 191, 36, 0.15);
+}
+
+/* 승리 */
+.is-winner {
+  background: rgba(212, 168, 67, 0.14);
+  border-color: rgba(212, 168, 67, 0.60);
+  box-shadow: 0 0 0 1px rgba(212, 168, 67, 0.30), 0 0 16px rgba(212, 168, 67, 0.18);
+}
+
+/* 다이 */
+.is-folded {
+  opacity: 0.38;
+  filter: grayscale(0.5);
+}
+
+/* ===== 이름 행 ===== */
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 0.1rem;
+}
+
+.player-name {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  max-width: 60px;
+  truncate: true;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #e5e7eb;
+  transition: color 0.2s;
+}
+@media (min-width: 640px) {
+  .player-name {
+    font-size: 0.75rem;
+    max-width: 80px;
+  }
+}
+
+.name--turn   { color: #fde68a; }
+.name--winner { color: #d4a843; }
+.name--folded { color: #6b7280; text-decoration: line-through; }
+
+/* ===== 뱃지 ===== */
+.badge {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 9999px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .badge { font-size: 0.625rem; }
+}
+
+.badge--bot  { background: rgba(139, 92, 246, 0.75); color: #fff; }
+.badge--host { background: rgba(212, 168, 67, 0.80); color: #000; }
+.badge--win  { background: #d4a843; color: #000; }
+
+/* ===== 액션 배지 ===== */
+.action-badge {
+  display: inline-block;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.88);
+  color: #000;
+  white-space: nowrap;
+  margin-bottom: 0.15rem;
+}
+@media (min-width: 640px) {
+  .action-badge { font-size: 0.625rem; }
+}
+
+/* ===== 카드 영역 ===== */
 .card-area {
+  display: flex;
+  gap: 0.25rem;
   position: relative;
   z-index: 1;
   flex-shrink: 0;
 }
+@media (min-width: 640px) {
+  .card-area { gap: 0.3rem; }
+}
 
-.action-fade-enter-active {
-  transition: all 0.3s ease;
+/* ===== 족보 배지 ===== */
+.hand-badge {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 9999px;
+  margin-top: 0.15rem;
 }
-.action-fade-leave-active {
-  transition: all 0.5s ease;
+@media (min-width: 640px) {
+  .hand-badge { font-size: 0.625rem; }
 }
-.action-fade-enter-from {
-  opacity: 0;
-  transform: translateY(-8px) scale(0.8);
+
+.hand-badge--active { background: rgba(212, 168, 67, 0.18); color: #d4a843; }
+.hand-badge--folded { background: rgba(75, 85, 99, 0.5);    color: #9ca3af; }
+
+/* ===== 잔액 행 ===== */
+.balance-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.1rem;
 }
-.action-fade-leave-to {
-  opacity: 0;
-  transform: translateY(8px) scale(0.8);
+
+.balance-text {
+  font-size: 0.5625rem;
+  color: rgba(134, 239, 172, 0.75);
 }
+.bet-text {
+  font-size: 0.5625rem;
+  color: rgba(253, 224, 71, 0.85);
+}
+@media (min-width: 640px) {
+  .balance-text, .bet-text { font-size: 0.625rem; }
+}
+
+/* ===== 준비완료 ===== */
+.ready-text {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: #4ade80;
+  margin-top: 0.1rem;
+}
+
+/* ===== 상대 카드 크기: 내 카드보다 소형 (슬롯 내 fit) ===== */
+/* mobile: 40×60px  / sm: 56×84px */
+.player-slot :deep(.card-flip-container) {
+  width: 2.5rem;
+  height: 3.75rem;
+}
+.player-slot :deep(.sutda-card) {
+  width: 2.5rem;
+  height: 3.75rem;
+  border-radius: 0.375rem;
+}
+.player-slot :deep(.sutda-card-back) {
+  width: 2.5rem;
+  height: 3.75rem;
+  border-radius: 0.375rem;
+}
+@media (min-width: 640px) {
+  .player-slot :deep(.card-flip-container) {
+    width: 3.5rem;
+    height: 5.25rem;
+  }
+  .player-slot :deep(.sutda-card) {
+    width: 3.5rem;
+    height: 5.25rem;
+    border-radius: 0.5rem;
+  }
+  .player-slot :deep(.sutda-card-back) {
+    width: 3.5rem;
+    height: 5.25rem;
+    border-radius: 0.5rem;
+  }
+}
+
+/* ===== 액션 트랜지션 ===== */
+.action-fade-enter-active { transition: all 0.3s ease; }
+.action-fade-leave-active { transition: all 0.5s ease; }
+.action-fade-enter-from { opacity: 0; transform: translateY(-6px) scale(0.8); }
+.action-fade-leave-to   { opacity: 0; transform: translateY(6px)  scale(0.8); }
 </style>
