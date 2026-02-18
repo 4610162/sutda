@@ -42,7 +42,7 @@ function handleLeave() {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 0.5rem;
+  padding: 0.25rem;
 }
 @media (min-width: 640px) {
   .game-viewport {

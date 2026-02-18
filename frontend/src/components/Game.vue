@@ -71,6 +71,35 @@ async function handleLeave() {
 
 <template>
   <div class="game-layout">
+    <!-- ====== 모바일 상단 바 (sm 이하에서만 표시) ====== -->
+    <div class="mobile-topbar sm:hidden">
+      <div class="flex items-center gap-1.5 min-w-0">
+        <span class="text-gray-400 text-[10px] truncate">{{ roomCode }}</span>
+        <span class="text-gray-600 text-[10px]">·</span>
+        <span class="text-gray-400 text-[10px]">{{ totalRoundsPlayed }}판</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button
+          @click="showHandGuide = true"
+          class="mobile-icon-btn"
+          title="족보 보기"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        </button>
+        <button
+          @click="handleLeave"
+          class="mobile-icon-btn text-gray-500 hover:text-red-400"
+          title="나가기"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
     <!-- ====== 메인 영역 (게임 테이블) ====== -->
     <div class="game-main flex flex-col min-h-0 min-w-0">
       <!-- 에러 메시지 -->
@@ -87,11 +116,11 @@ async function handleLeave() {
       <Transition name="slide">
         <div
           v-if="phase === 'waiting' && isRematch"
-          class="bg-amber-900/70 border-2 border-amber-500 text-amber-100 px-3 py-1.5 rounded-xl mb-1 text-center"
+          class="bg-amber-900/70 border-2 border-amber-500 text-amber-100 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl mb-1 text-center"
         >
-          <div class="font-bold text-sm">⚡ 구사 재경기!</div>
-          <div class="text-xs mt-0.5">동점으로 재경기가 시작됩니다. 판돈이 다음 라운드로 이월됩니다.</div>
-          <div class="text-amber-300 text-xs font-bold mt-0.5">
+          <div class="font-bold text-xs sm:text-sm">⚡ 구사 재경기!</div>
+          <div class="text-[10px] sm:text-xs mt-0.5">동점으로 재경기가 시작됩니다. 판돈이 다음 라운드로 이월됩니다.</div>
+          <div class="text-amber-300 text-[10px] sm:text-xs font-bold mt-0.5">
             이월 판돈: {{ pot.toLocaleString() }}원
           </div>
         </div>
@@ -108,50 +137,50 @@ async function handleLeave() {
           <!-- 판돈 (playing / result) -->
           <div
             v-if="phase !== 'waiting' && phase !== 'ended'"
-            class="bg-black/30 rounded-xl px-4 py-2 text-center"
+            class="bg-black/30 rounded-xl px-3 py-1.5 sm:px-4 sm:py-2 text-center"
           >
-            <div class="text-gray-400 text-[10px] uppercase tracking-wider mb-0.5">판돈</div>
-            <div class="text-sutda-gold text-xl sm:text-2xl font-bold">
+            <div class="text-gray-400 text-[9px] sm:text-[10px] uppercase tracking-wider mb-0.5">판돈</div>
+            <div class="text-sutda-gold text-lg sm:text-2xl font-bold">
               {{ pot.toLocaleString() }}원
             </div>
             <!-- result: 승자 표시 -->
-            <div v-if="phase === 'result' && resultSummary" class="mt-1">
-              <div class="text-white font-bold text-sm">
+            <div v-if="phase === 'result' && resultSummary" class="mt-0.5 sm:mt-1">
+              <div class="text-white font-bold text-xs sm:text-sm">
                 {{ resultSummary.winnerName }}
                 <span class="text-sutda-gold ml-1">승리!</span>
               </div>
-              <div class="text-yellow-300 text-xs">{{ resultSummary.winnerHand }}</div>
+              <div class="text-yellow-300 text-[10px] sm:text-xs">{{ resultSummary.winnerHand }}</div>
             </div>
             <!-- playing: 라운드 표시 -->
-            <div v-if="phase === 'playing'" class="text-gray-400 text-[10px] mt-0.5">
+            <div v-if="phase === 'playing'" class="text-gray-400 text-[9px] sm:text-[10px] mt-0.5">
               배팅 라운드 {{ roundCount + 1 }}
             </div>
           </div>
 
           <!-- 대기 중 -->
           <div v-if="phase === 'waiting'" class="text-center">
-            <div class="text-gray-300 text-sm mb-1.5">
+            <div class="text-gray-300 text-xs sm:text-sm mb-1 sm:mb-1.5">
               플레이어 대기 중 ({{ players.length }}/4)
             </div>
             <div class="flex gap-2 justify-center mb-2">
               <div
                 v-for="i in 4"
                 :key="i"
-                class="w-2.5 h-2.5 rounded-full"
+                class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full"
                 :class="i <= players.length ? 'bg-green-500' : 'bg-gray-600'"
               ></div>
             </div>
             <button
               v-if="players.length >= 2 && !myPlayer?.ready"
               @click="setReady"
-              class="btn-primary text-sm px-6 py-2"
+              class="btn-primary text-xs sm:text-sm px-4 py-1.5 sm:px-6 sm:py-2"
             >
               준비 완료
             </button>
-            <p v-else-if="myPlayer?.ready" class="text-green-400 text-xs">
+            <p v-else-if="myPlayer?.ready" class="text-green-400 text-[10px] sm:text-xs">
               준비 완료! 다른 플레이어를 기다리는 중...
             </p>
-            <p v-else class="text-gray-400 text-xs">
+            <p v-else class="text-gray-400 text-[10px] sm:text-xs">
               최소 2명이 필요합니다
             </p>
 
@@ -222,9 +251,9 @@ async function handleLeave() {
           </div>
 
           <!-- 하단: 내 영역 -->
-          <div class="table-bottom flex flex-col items-center gap-1">
+          <div class="table-bottom flex flex-col items-center gap-0.5 sm:gap-1">
             <!-- 내 카드 -->
-            <div class="flex gap-2">
+            <div class="flex gap-1.5 sm:gap-2">
               <template v-if="myPlayer?.cards?.length">
                 <SutdaCard
                   v-for="card in myPlayer.cards"
@@ -236,9 +265,9 @@ async function handleLeave() {
             </div>
 
             <!-- 내 이름 & 잔액 (한 줄로 압축) -->
-            <div class="flex items-center gap-2 flex-wrap justify-center">
+            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-center">
               <span
-                class="font-bold text-sm"
+                class="font-bold text-xs sm:text-sm"
                 :class="
                   phase === 'result' && winnerId === playerId
                     ? 'text-sutda-gold'
@@ -249,12 +278,12 @@ async function handleLeave() {
               >
                 {{ myPlayer?.name || playerName }}
               </span>
-              <span v-if="myPlayer?.isHost" class="text-[10px] bg-sutda-gold/80 text-black px-1.5 py-0.5 rounded-full font-bold leading-none">방장</span>
+              <span v-if="myPlayer?.isHost" class="text-[9px] sm:text-[10px] bg-sutda-gold/80 text-black px-1 py-0.5 rounded-full font-bold leading-none">방장</span>
               <!-- 내 베팅 액션 텍스트 -->
               <Transition name="action-fade">
                 <span
                   v-if="myVisibleAction && phase === 'playing'"
-                  class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/90 text-black whitespace-nowrap"
+                  class="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/90 text-black whitespace-nowrap"
                 >
                   {{ myVisibleAction }}
                 </span>
@@ -262,19 +291,19 @@ async function handleLeave() {
               <!-- 내 승리 배지 -->
               <span
                 v-if="phase === 'result' && winnerId === playerId"
-                class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sutda-gold text-black animate-pulse"
+                class="text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sutda-gold text-black animate-pulse"
               >
                 승리
               </span>
               <!-- 잔액 + 베팅 (이름 옆에 한 줄) -->
-              <span class="text-[10px] text-green-300">{{ (myPlayer?.balance ?? 0).toLocaleString() }}원</span>
-              <span v-if="myPlayer?.totalBet" class="text-[10px] text-yellow-300">베팅 {{ myPlayer.totalBet.toLocaleString() }}원</span>
+              <span class="text-[9px] sm:text-[10px] text-green-300">{{ (myPlayer?.balance ?? 0).toLocaleString() }}원</span>
+              <span v-if="myPlayer?.totalBet" class="text-[9px] sm:text-[10px] text-yellow-300">베팅 {{ myPlayer.totalBet.toLocaleString() }}원</span>
             </div>
 
             <!-- 족보 -->
             <div
               v-if="myPlayer?.hand"
-              class="bg-sutda-gold/20 text-sutda-gold px-3 py-0.5 rounded-full text-xs font-bold"
+              class="bg-sutda-gold/20 text-sutda-gold px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold"
             >
               {{ myPlayer.hand.name }}
             </div>
@@ -286,11 +315,11 @@ async function handleLeave() {
                 <button
                   v-if="!myPlayer?.ready"
                   @click="setReady"
-                  class="btn-primary px-6 py-1.5 text-sm"
+                  class="btn-primary px-4 py-1 sm:px-6 sm:py-1.5 text-xs sm:text-sm"
                 >
                   다음 라운드 준비
                 </button>
-                <p v-else class="text-green-400 text-xs animate-pulse">
+                <p v-else class="text-green-400 text-[10px] sm:text-xs animate-pulse">
                   다른 플레이어를 기다리는 중...
                 </p>
               </div>
@@ -299,7 +328,7 @@ async function handleLeave() {
               <template v-else-if="phase === 'playing'">
                 <div
                   v-if="!myPlayer?.folded && isMyTurn"
-                  class="flex items-center gap-1.5 flex-wrap justify-center"
+                  class="bet-buttons"
                 >
                   <template v-if="!hasRaise">
                     <button @click="bet('check')" class="btn-secondary btn-bet" title="베팅 없이 턴 넘김">체크</button>
@@ -320,10 +349,10 @@ async function handleLeave() {
                   </template>
                   <button @click="bet('die')" class="btn-danger btn-bet">다이</button>
                 </div>
-                <p v-else-if="!myPlayer?.folded" class="text-gray-400 text-xs animate-pulse text-center">
+                <p v-else-if="!myPlayer?.folded" class="text-gray-400 text-[10px] sm:text-xs animate-pulse text-center">
                   상대방의 턴을 기다리는 중...
                 </p>
-                <p v-else class="text-gray-500 text-xs text-center">다이 처리됨</p>
+                <p v-else class="text-gray-500 text-[10px] sm:text-xs text-center">다이 처리됨</p>
               </template>
             </div>
           </div>
@@ -331,8 +360,8 @@ async function handleLeave() {
       </div>
     </div>
 
-    <!-- ====== 우측 사이드바 ====== -->
-    <aside class="game-sidebar">
+    <!-- ====== 우측 사이드바 (sm 이상에서만 표시) ====== -->
+    <aside class="game-sidebar hidden sm:flex">
       <div class="flex flex-col gap-3">
         <!-- 방 정보 -->
         <div class="sidebar-section">
@@ -382,26 +411,58 @@ async function handleLeave() {
 /* 전체 레이아웃: 사이드바 + 메인 (뷰포트에 맞춤) */
 .game-layout {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   width: 100%;
   height: 100%;
   min-height: 0;
   overflow: hidden;
-  gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .game-layout {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+}
+
+/* 모바일 상단 바 */
+.mobile-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.125rem 0.5rem;
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mobile-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 0.375rem;
+  color: #9ca3af;
+  transition: color 0.2s, background 0.2s;
+}
+.mobile-icon-btn:hover,
+.mobile-icon-btn:active {
+  color: #fbbf24;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* 메인 게임 영역 */
 .game-main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
 }
 
-/* 우측 사이드바 */
+/* 우측 사이드바 (sm 이상) */
 .game-sidebar {
   width: 100px;
   flex-shrink: 0;
   padding: 0.5rem;
-  display: flex;
   flex-direction: column;
 }
 
@@ -445,7 +506,7 @@ async function handleLeave() {
     "left center right"
     "bottom bottom bottom";
   flex: 1;
-  padding: 0.375rem;
+  padding: 0.25rem;
   min-height: 0;
 }
 @media (min-width: 640px) {
@@ -459,7 +520,12 @@ async function handleLeave() {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 0.125rem 0;
+  padding: 0;
+}
+@media (min-width: 640px) {
+  .table-top {
+    padding: 0.125rem 0;
+  }
 }
 
 .table-left {
@@ -467,7 +533,7 @@ async function handleLeave() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0.125rem;
+  padding: 0;
 }
 @media (min-width: 640px) {
   .table-left {
@@ -480,7 +546,7 @@ async function handleLeave() {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 80px;
+  min-height: 60px;
 }
 @media (min-width: 640px) {
   .table-center {
@@ -493,7 +559,7 @@ async function handleLeave() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0.125rem;
+  padding: 0;
 }
 @media (min-width: 640px) {
   .table-right {
@@ -503,16 +569,40 @@ async function handleLeave() {
 
 .table-bottom {
   grid-area: bottom;
-  padding-top: 0.125rem;
+  padding-top: 0;
+}
+@media (min-width: 640px) {
+  .table-bottom {
+    padding-top: 0.125rem;
+  }
 }
 
 /* 하단 액션 영역 */
 .bottom-action-area {
-  min-height: 40px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
+}
+@media (min-width: 640px) {
+  .bottom-action-area {
+    min-height: 40px;
+  }
+}
+
+/* 베팅 버튼 컨테이너: 모바일에서 한 줄 compact */
+.bet-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+@media (min-width: 640px) {
+  .bet-buttons {
+    gap: 0.375rem;
+  }
 }
 
 .slide-enter-active,
