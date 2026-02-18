@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useGameStore } from "../composables/useGameStore";
 import PlayerSlot from "./PlayerSlot.vue";
 import SutdaCard from "./SutdaCard.vue";
@@ -72,6 +72,43 @@ async function handleLeave() {
 
 // 내 족보 이름 (playing 중 표시)
 const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
+
+// ===== 판돈 Count-up 애니메이션 =====
+const displayPot = ref(0);
+const coinBounce = ref(false);
+
+watch(
+  pot,
+  (newVal) => {
+    const start = displayPot.value;
+    const end = newVal;
+    if (start === end) return;
+
+    // 판돈 증가 시 금화 바운스 트리거
+    if (end > start) {
+      coinBounce.value = true;
+      setTimeout(() => { coinBounce.value = false; }, 750);
+    }
+
+    // 숫자 카운트업 (600ms, 20단계 easeOut)
+    const steps = 20;
+    const diff = end - start;
+    let step = 0;
+    const timer = setInterval(() => {
+      step++;
+      if (step >= steps) {
+        displayPot.value = end;
+        clearInterval(timer);
+      } else {
+        // easeOut 적용
+        const progress = step / steps;
+        const eased = 1 - Math.pow(1 - progress, 2);
+        displayPot.value = Math.round(start + diff * eased);
+      }
+    }, 30);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -225,16 +262,20 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
         <div v-if="phase === 'playing' || phase === 'result'" class="pot-section">
           <div class="pot-bar">
             <div class="flex items-center gap-2 justify-center">
-              <!-- 코인 아이콘 -->
-              <svg class="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="12" cy="12" r="10" fill="rgba(212,168,67,0.15)" stroke="rgba(212,168,67,0.6)" stroke-width="1.5"/>
-                <circle cx="12" cy="12" r="6" fill="rgba(212,168,67,0.2)"/>
-                <path d="M10 9.5c0-.83.67-1.5 1.5-1.5h1c.83 0 1.5.67 1.5 1.5 0 .55-.3 1.03-.74 1.28C13.7 11.06 14 11.55 14 12.1c0 .88-.67 1.6-1.5 1.6h-.06c-.06.17-.16.31-.3.41" stroke="rgba(212,168,67,0.9)" stroke-width="1.2" stroke-linecap="round"/>
-                <path d="M12 8v1M12 15v1" stroke="rgba(212,168,67,0.9)" stroke-width="1.2" stroke-linecap="round"/>
+              <!-- 코인 아이콘 (판돈 증가 시 바운스) -->
+              <svg
+                class="w-5 h-5 flex-shrink-0"
+                :class="{ 'coin-icon-bounce': coinBounce }"
+                viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="12" cy="12" r="10" fill="rgba(212,168,67,0.20)" stroke="rgba(212,168,67,0.75)" stroke-width="1.5"/>
+                <circle cx="12" cy="12" r="6" fill="rgba(212,168,67,0.25)"/>
+                <path d="M10 9.5c0-.83.67-1.5 1.5-1.5h1c.83 0 1.5.67 1.5 1.5 0 .55-.3 1.03-.74 1.28C13.7 11.06 14 11.55 14 12.1c0 .88-.67 1.6-1.5 1.6h-.06c-.06.17-.16.31-.3.41" stroke="rgba(212,168,67,0.95)" stroke-width="1.2" stroke-linecap="round"/>
+                <path d="M12 8v1M12 15v1" stroke="rgba(212,168,67,0.95)" stroke-width="1.2" stroke-linecap="round"/>
               </svg>
               <span class="text-gray-400 text-[10px] sm:text-[11px] uppercase tracking-wider font-medium">판돈</span>
-              <span class="text-sutda-gold font-bold text-base sm:text-xl pot-amount leading-none">
-                {{ pot.toLocaleString() }}원
+              <span class="text-sutda-gold font-bold text-base sm:text-xl pot-amount leading-none tabular-nums">
+                {{ displayPot.toLocaleString() }}원
               </span>
               <span v-if="phase === 'playing'" class="text-gray-500/60 text-[9px] sm:text-[10px] font-medium">
                 · R{{ roundCount + 1 }}
@@ -486,7 +527,7 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
 /* 좌측 슬롯: 왼쪽 정렬, 하단 오프셋으로 부채꼴 효과 */
 .arc-slot--left {
   justify-content: flex-start;
-  padding-top: 1.75rem;
+  padding-top: 2rem;
 }
 
 /* 중앙 슬롯: 정중앙, 상단에 배치 (아크 꼭짓점) */
@@ -498,13 +539,13 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
 /* 우측 슬롯: 오른쪽 정렬, 하단 오프셋으로 부채꼴 효과 */
 .arc-slot--right {
   justify-content: flex-end;
-  padding-top: 1.75rem;
+  padding-top: 2rem;
 }
 
 @media (min-width: 640px) {
   .arc-slot--left,
   .arc-slot--right {
-    padding-top: 2.5rem;
+    padding-top: 2.75rem;
   }
 }
 
@@ -549,30 +590,48 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
 .pot-section {
   display: flex;
   justify-content: center;
-  padding: 0 1rem 0.375rem;
+  padding: 0.25rem 1rem 0.5rem;
   flex-shrink: 0;
 }
 
 .pot-bar {
-  background: rgba(0, 0, 0, 0.52);
-  border: 1px solid rgba(212, 168, 67, 0.38);
-  border-radius: 1rem;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 0.4rem 1.25rem;
-  min-width: 200px;
+  background: rgba(0, 0, 0, 0.62);
+  border: 1.5px solid rgba(212, 168, 67, 0.60);
+  border-radius: 1.25rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 0.5rem 1.5rem;
+  min-width: 220px;
   text-align: center;
-  box-shadow: 0 2px 16px rgba(212, 168, 67, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 0 22px rgba(212, 168, 67, 0.22),
+    0 0 48px rgba(212, 168, 67, 0.08),
+    0 2px 16px rgba(212, 168, 67, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.20);
 }
 @media (min-width: 640px) {
   .pot-bar {
-    min-width: 250px;
-    padding: 0.5rem 1.5rem;
+    min-width: 290px;
+    padding: 0.625rem 2rem;
   }
 }
 
 .pot-amount {
-  text-shadow: 0 0 14px rgba(218, 165, 32, 0.65);
+  text-shadow: 0 0 18px rgba(218, 165, 32, 0.80), 0 0 36px rgba(218, 165, 32, 0.35);
+}
+
+/* ===== 금화 바운스 애니메이션 ===== */
+@keyframes coin-icon-bounce {
+  0%   { transform: translateY(0)    scale(1);    }
+  28%  { transform: translateY(-9px) scale(1.30); }
+  55%  { transform: translateY(-3px) scale(1.10); }
+  75%  { transform: translateY(-6px) scale(1.18); }
+  100% { transform: translateY(0)    scale(1);    }
+}
+
+.coin-icon-bounce {
+  animation: coin-icon-bounce 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* ===== ④ 내 카드 영역 ===== */
@@ -583,6 +642,8 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   gap: 0.375rem;
   padding: 0 0.5rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 /* 내 족보 뱃지 */
@@ -606,6 +667,8 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   justify-content: center;
   padding: 0.25rem 0.5rem;
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .bet-buttons {
@@ -647,6 +710,8 @@ const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
   -webkit-backdrop-filter: blur(10px);
   border-bottom-left-radius: 1rem;
   border-bottom-right-radius: 1rem;
+  position: relative;
+  z-index: 3;
 }
 
 /* ===== 애니메이션 ===== */

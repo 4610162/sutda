@@ -15,7 +15,7 @@
 @layer components {
   /* ===== 카드 앞면 ===== */
   .sutda-card {
-    @apply w-14 h-[5.25rem] sm:w-20 sm:h-32
+    @apply w-[4.2rem] h-[6.3rem] sm:w-24 sm:h-[9.6rem]
            rounded-lg sm:rounded-xl
            border-2 border-sutda-gold
            bg-white overflow-hidden
@@ -24,7 +24,7 @@
 
   /* ===== 카드 뒷면 (프리미엄 패턴) ===== */
   .sutda-card-back {
-    @apply w-14 h-[5.25rem] sm:w-20 sm:h-32
+    @apply w-[4.2rem] h-[6.3rem] sm:w-24 sm:h-[9.6rem]
            rounded-lg sm:rounded-xl
            border-2 border-sutda-gold
            shadow-lg select-none
@@ -59,7 +59,7 @@
   /* ===== 카드 뒤집기 애니메이션 ===== */
   .card-flip-container {
     perspective: 600px;
-    @apply w-14 h-[5.25rem] sm:w-20 sm:h-32;
+    @apply w-[4.2rem] h-[6.3rem] sm:w-24 sm:h-[9.6rem];
   }
   .card-flipper {
     @apply relative w-full h-full;

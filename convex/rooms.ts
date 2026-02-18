@@ -481,6 +481,16 @@ export const leaveRoom = mutation({
       return;
     }
 
+    // 실제 유저(비봇)가 0명이고 봇만 남은 경우 → 방 즉시 삭제
+    const realPlayersRemaining = remaining.filter((p) => !p.isBot);
+    if (realPlayersRemaining.length === 0) {
+      for (const p of remaining) {
+        await ctx.db.delete(p._id);
+      }
+      await ctx.db.delete(room._id);
+      return;
+    }
+
     // 활동 시간 갱신
     await ctx.db.patch(room._id, { lastActivity: Date.now() });
 
@@ -702,6 +712,34 @@ async function resolveWinnerWithResults(
     await ctx.scheduler.runAfter(0, internal.bot.checkBotTurn, { roomId });
   }
 }
+
+// ─────────────────────────────────────────────
+// Mutation: 전체 방 목록 초기화 (관리자용)
+// 실행: npx convex run rooms:clearAllRooms
+// ─────────────────────────────────────────────
+export const clearAllRooms = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const rooms = await ctx.db.query("rooms").collect();
+    let deletedRooms = 0;
+    let deletedPlayers = 0;
+
+    for (const room of rooms) {
+      const players = await ctx.db
+        .query("players")
+        .withIndex("by_room", (q) => q.eq("roomId", room._id))
+        .collect();
+      for (const p of players) {
+        await ctx.db.delete(p._id);
+        deletedPlayers++;
+      }
+      await ctx.db.delete(room._id);
+      deletedRooms++;
+    }
+
+    return { deletedRooms, deletedPlayers };
+  },
+});
 
 // ─────────────────────────────────────────────
 // Internal Mutation: 비활성 방 자동 삭제 (1분 기준)

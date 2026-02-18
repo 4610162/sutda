@@ -93,10 +93,10 @@ const visibleAction = computed(() => props.player.lastAction);
   flex-direction: column;
   align-items: center;
   gap: 0;
-  padding: 0.375rem 0.375rem 0.3rem;
+  padding: 0.4rem 0.4rem 0.35rem;
   border-radius: 0.75rem;
-  min-width: 88px;
-  width: 88px;
+  min-width: 110px;
+  width: 110px;
   position: relative;
   isolation: isolate;
   overflow: visible;
@@ -109,22 +109,22 @@ const visibleAction = computed(() => props.player.lastAction);
 }
 @media (min-width: 640px) {
   .player-slot {
-    min-width: 120px;
-    width: 120px;
-    padding: 0.5rem 0.5rem 0.375rem;
+    min-width: 152px;
+    width: 152px;
+    padding: 0.625rem 0.625rem 0.45rem;
     border-radius: 0.875rem;
   }
 }
 
 /* 사이드 슬롯 (좌/우) */
 .player-slot--side {
-  width: 82px;
-  min-width: 82px;
+  width: 104px;
+  min-width: 104px;
 }
 @media (min-width: 640px) {
   .player-slot--side {
-    width: 118px;
-    min-width: 118px;
+    width: 148px;
+    min-width: 148px;
   }
 }
 
@@ -163,8 +163,7 @@ const visibleAction = computed(() => props.player.lastAction);
 .player-name {
   font-size: 0.6875rem;
   font-weight: 700;
-  max-width: 60px;
-  truncate: true;
+  max-width: 76px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -174,7 +173,7 @@ const visibleAction = computed(() => props.player.lastAction);
 @media (min-width: 640px) {
   .player-name {
     font-size: 0.75rem;
-    max-width: 80px;
+    max-width: 104px;
   }
 }
 
@@ -271,34 +270,34 @@ const visibleAction = computed(() => props.player.lastAction);
 }
 
 /* ===== 상대 카드 크기: 내 카드보다 소형 (슬롯 내 fit) ===== */
-/* mobile: 40×60px  / sm: 56×84px */
+/* mobile: 48×72px  / sm: 67×101px  (기존 대비 1.2배) */
 .player-slot :deep(.card-flip-container) {
-  width: 2.5rem;
-  height: 3.75rem;
+  width: 3rem;
+  height: 4.5rem;
 }
 .player-slot :deep(.sutda-card) {
-  width: 2.5rem;
-  height: 3.75rem;
+  width: 3rem;
+  height: 4.5rem;
   border-radius: 0.375rem;
 }
 .player-slot :deep(.sutda-card-back) {
-  width: 2.5rem;
-  height: 3.75rem;
+  width: 3rem;
+  height: 4.5rem;
   border-radius: 0.375rem;
 }
 @media (min-width: 640px) {
   .player-slot :deep(.card-flip-container) {
-    width: 3.5rem;
-    height: 5.25rem;
+    width: 4.2rem;
+    height: 6.3rem;
   }
   .player-slot :deep(.sutda-card) {
-    width: 3.5rem;
-    height: 5.25rem;
+    width: 4.2rem;
+    height: 6.3rem;
     border-radius: 0.5rem;
   }
   .player-slot :deep(.sutda-card-back) {
-    width: 3.5rem;
-    height: 5.25rem;
+    width: 4.2rem;
+    height: 6.3rem;
     border-radius: 0.5rem;
   }
 }
