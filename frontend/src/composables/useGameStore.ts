@@ -79,6 +79,7 @@ export function useGameStore(roomCode: string, playerName: string) {
       balance: rp.balance,
       ready: rp.ready,
       isHost: rp.playerId === hostId.value,
+      isBot: rp.isBot === true,
       hand: rp.handName != null && rp.handRank != null
         ? { name: rp.handName, rank: rp.handRank }
         : undefined,
@@ -160,6 +161,27 @@ export function useGameStore(roomCode: string, playerName: string) {
     joined.value = false;
   }
 
+  async function addBot(botName: string) {
+    try {
+      await client.mutation(api.bot.addBot, { roomCode, botName });
+    } catch (e: any) {
+      setError(e?.data ?? e?.message ?? "봇 추가 실패");
+    }
+  }
+
+  async function removeBot(botPlayerId: string) {
+    try {
+      await client.mutation(api.bot.removeBot, { roomCode, botPlayerId });
+    } catch (e: any) {
+      setError(e?.data ?? e?.message ?? "봇 제거 실패");
+    }
+  }
+
+  /** 봇 플레이어 목록 */
+  const botPlayers = computed(() =>
+    players.value.filter((p) => p.isBot),
+  );
+
   return {
     playerId,
     phase,
@@ -180,8 +202,11 @@ export function useGameStore(roomCode: string, playerName: string) {
     isMyTurn,
     isHost,
     resultSummary,
+    botPlayers,
     bet,
     setReady,
     leaveRoom,
+    addBot,
+    removeBot,
   };
 }

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { calculateRank, resolveSpecialHands, shuffleAndDeal } from "./game";
 
 const INITIAL_BALANCE = 100_000;
@@ -192,6 +193,12 @@ export const placeBet = mutation({
     // lastAction 기록 (UI 피드백용) + 활동 시간 갱신
     await ctx.db.patch(me._id, { lastAction: ACTION_LABELS[action] ?? action });
     await ctx.db.patch(room._id, { lastActivity: Date.now() });
+
+    // 봇 레이즈 카운트 증가 (무한 베팅 방지)
+    const isRaiseAction = action === "pping" || action === "half" || action === "ddadang";
+    if (me.isBot && isRaiseAction) {
+      await ctx.db.patch(me._id, { botRaiseCount: (me.botRaiseCount ?? 0) + 1 });
+    }
 
     // lastBettorId 기록 (체크와 다이 제외 - 실제 베팅 액션만)
     if (action !== "check" && action !== "die") {
@@ -389,6 +396,7 @@ export const setReady = mutation({
           handName: undefined,
           handRank: undefined,
           lastAction: undefined,
+          botRaiseCount: 0,
         });
       }
 
@@ -416,6 +424,12 @@ export const setReady = mutation({
         lastBettorId: undefined,
         rematchPlayerIds: undefined,
       });
+      // 첫 턴 플레이어가 봇이면 행동 스케줄링
+      await ctx.scheduler.runAfter(0, internal.bot.checkBotTurn, { roomId: room._id });
+    } else {
+      // 게임이 아직 시작되지 않았으면, 미준비 봇을 위해 checkBotTurn 재트리거
+      // (레이스 컨디션 방지: 봇들이 순차적으로 ready할 때 누락 방지)
+      await ctx.scheduler.runAfter(500, internal.bot.checkBotTurn, { roomId: room._id });
     }
   },
 });
@@ -481,7 +495,7 @@ export const leaveRoom = mutation({
 // ─────────────────────────────────────────────
 // 내부: 턴 진행
 // ─────────────────────────────────────────────
-async function advanceTurn(ctx: { db: any }, room: any, players: any[]) {
+async function advanceTurn(ctx: { db: any; scheduler: any }, room: any, players: any[]) {
   const order = room.turnOrder as string[];
   let nextIdx = (room.turnIndex + 1) % order.length;
   let newRoundCount = room.roundCount;
@@ -526,6 +540,8 @@ async function advanceTurn(ctx: { db: any }, room: any, players: any[]) {
         currentTurnId: order[nextIdx],
         roundCount: newRoundCount,
       });
+      // 봇 턴 확인 및 스케줄링
+      await ctx.scheduler.runAfter(0, internal.bot.checkBotTurn, { roomId: room._id });
       return;
     }
     nextIdx = (nextIdx + 1) % order.length;
@@ -539,7 +555,7 @@ async function advanceTurn(ctx: { db: any }, room: any, players: any[]) {
 // ─────────────────────────────────────────────
 // 내부: 족보 비교 → 승자 결정 (특수패 + 동점 재경기)
 // ─────────────────────────────────────────────
-async function determineWinner(ctx: { db: any }, roomId: any, players: any[], pot: number) {
+async function determineWinner(ctx: { db: any; scheduler: any }, roomId: any, players: any[], pot: number) {
   if (players.length === 0) return;
 
   // 각 플레이어 족보 계산
@@ -565,11 +581,24 @@ async function determineWinner(ctx: { db: any }, roomId: any, players: any[], po
       }
     }
 
-    // 무승부 플레이어 목록 (가장 높은 rank를 가진 플레이어들)
-    const bestRank = Math.max(...resolution.results.map((r) => r.result.rank));
-    const tiedPlayerIds = resolution.results
-      .filter((r) => r.result.rank === bestRank)
-      .map((r) => r.playerId);
+    // 재경기 참여 플레이어 목록 결정
+    // 구사/멍텅구리구사 재경기: 모든 활성 플레이어가 참여
+    // 일반 동점 재경기: 동점인 플레이어들만 참여
+    const hasGusaRematch = resolution.results.some(
+      (r) => r.result.special?.type === "gusa" || r.result.special?.type === "mung_gusa"
+        || r.result.name === "구사" || r.result.name === "멍텅구리구사",
+    );
+    let tiedPlayerIds: string[];
+    if (hasGusaRematch) {
+      // 구사 재경기: 모든 활성(비폴드) 플레이어 참여
+      tiedPlayerIds = players.map((p) => p.playerId as string);
+    } else {
+      // 일반 동점: 가장 높은 rank인 플레이어들만
+      const bestRank = Math.max(...resolution.results.map((r) => r.result.rank));
+      tiedPlayerIds = resolution.results
+        .filter((r) => r.result.rank === bestRank)
+        .map((r) => r.playerId);
+    }
 
     // 모든 플레이어 상태 초기화
     const allPlayers = await ctx.db
@@ -605,6 +634,8 @@ async function determineWinner(ctx: { db: any }, roomId: any, players: any[], po
       rematchPlayerIds: tiedPlayerIds,
       // lastBettorId는 유지 (재경기 선 결정에 사용)
     });
+    // 봇 자동 레디 스케줄링
+    await ctx.scheduler.runAfter(0, internal.bot.checkBotTurn, { roomId });
     return;
   }
 
@@ -617,7 +648,7 @@ async function determineWinner(ctx: { db: any }, roomId: any, players: any[], po
 // (resolveSpecialHands 해석 결과를 직접 사용)
 // ─────────────────────────────────────────────
 async function resolveWinnerWithResults(
-  ctx: { db: any },
+  ctx: { db: any; scheduler: any },
   roomId: any,
   winnerId: string,
   resolvedResults: { playerId: string; result: { rank: number; name: string; score: number } }[],
@@ -667,6 +698,8 @@ async function resolveWinnerWithResults(
       currentTurnId: undefined,
       lastWinnerId: winnerId,
     });
+    // 봇 자동 레디 스케줄링
+    await ctx.scheduler.runAfter(0, internal.bot.checkBotTurn, { roomId });
   }
 }
 
@@ -699,7 +732,7 @@ export const cleanupInactiveRooms = internalMutation({
 
 // 다이에 의한 단독 생존자 처리용 (기존 resolveWinner 유지)
 async function resolveWinner(
-  ctx: { db: any },
+  ctx: { db: any; scheduler: any },
   roomId: any,
   winnerId: string,
   players: any[],
@@ -749,5 +782,7 @@ async function resolveWinner(
       currentTurnId: undefined,
       lastWinnerId: winnerId,
     });
+    // 봇 자동 레디 스케줄링
+    await ctx.scheduler.runAfter(0, internal.bot.checkBotTurn, { roomId });
   }
 }

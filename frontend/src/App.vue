@@ -19,16 +19,34 @@ function handleLeave() {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center p-4">
+  <!-- 로비: 중앙 정렬 + 제목 -->
+  <div v-if="!joined" class="min-h-screen flex flex-col items-center justify-center p-4">
     <h1 class="text-4xl font-bold text-sutda-gold mb-8">섯다</h1>
+    <Lobby @join="handleJoin" />
+  </div>
 
-    <Lobby v-if="!joined" @join="handleJoin" />
-
+  <!-- 게임: 스크롤 없이 뷰포트에 맞춤 -->
+  <div v-else class="game-viewport">
     <Game
-      v-else
       :player-name="playerName"
       :room-code="roomCode"
       @leave="handleLeave"
     />
   </div>
 </template>
+
+<style scoped>
+.game-viewport {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+}
+@media (min-width: 640px) {
+  .game-viewport {
+    padding: 1rem;
+  }
+}
+</style>

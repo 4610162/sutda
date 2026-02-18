@@ -52,6 +52,10 @@ export default defineSchema({
     handRank: v.optional(v.number()),
     // 마지막 베팅 액션 (UI 피드백용)
     lastAction: v.optional(v.string()),
+    // 봇 여부
+    isBot: v.optional(v.boolean()),
+    // 봇 레이즈 횟수 (라운드당, 무한 베팅 방지용)
+    botRaiseCount: v.optional(v.number()),
   })
     .index("by_room", ["roomId"])
     .index("by_room_player", ["roomId", "playerId"]),

@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as bot from "../bot.js";
 import type * as game from "../game.js";
 import type * as rooms from "../rooms.js";
 
@@ -18,6 +19,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  bot: typeof bot;
   game: typeof game;
   rooms: typeof rooms;
 }>;

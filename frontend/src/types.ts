@@ -38,6 +38,7 @@ export interface PlayerRow {
   ready: boolean;
   handName?: string;
   handRank?: number;
+  isBot?: boolean;
 }
 
 export interface RoomRow {
@@ -69,6 +70,24 @@ export interface PublicPlayer {
   balance: number;
   ready: boolean;
   isHost: boolean;
+  isBot: boolean;
   hand?: { name: string; rank: number };
   lastAction?: string;  // 마지막 베팅 액션 (UI 피드백용)
 }
+
+/** 봇 정의 (프리셋) */
+export interface BotDefinition {
+  name: string;
+  personality: "aggressive" | "tight";
+  description: string;
+}
+
+/** 사전 정의된 봇 목록 */
+export const BOT_DEFINITIONS: BotDefinition[] = [
+  { name: "김타짜", personality: "aggressive", description: "공격적인 베팅 성향" },
+  { name: "이판사", personality: "tight", description: "보수적인 판단형" },
+  { name: "박도박", personality: "aggressive", description: "과감한 블러퍼" },
+  { name: "최신중", personality: "tight", description: "신중한 계산파" },
+  { name: "정승부", personality: "aggressive", description: "승부사 기질" },
+  { name: "한수비", personality: "tight", description: "수비 중심 플레이" },
+];
