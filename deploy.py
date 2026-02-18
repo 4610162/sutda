@@ -36,3 +36,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#  서버 방 목록 삭제: npx convex run rooms:clearAllRooms --prod

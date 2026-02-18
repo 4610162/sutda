@@ -266,14 +266,26 @@ watch(
               <svg
                 class="w-5 h-5 flex-shrink-0"
                 :class="{ 'coin-icon-bounce': coinBounce }"
-                viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                <circle cx="12" cy="12" r="10" fill="rgba(212,168,67,0.20)" stroke="rgba(212,168,67,0.75)" stroke-width="1.5"/>
-                <circle cx="12" cy="12" r="6" fill="rgba(212,168,67,0.25)"/>
-                <path d="M10 9.5c0-.83.67-1.5 1.5-1.5h1c.83 0 1.5.67 1.5 1.5 0 .55-.3 1.03-.74 1.28C13.7 11.06 14 11.55 14 12.1c0 .88-.67 1.6-1.5 1.6h-.06c-.06.17-.16.31-.3.41" stroke="rgba(212,168,67,0.95)" stroke-width="1.2" stroke-linecap="round"/>
-                <path d="M12 8v1M12 15v1" stroke="rgba(212,168,67,0.95)" stroke-width="1.2" stroke-linecap="round"/>
+                <defs>
+                  <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FDE68A" /> <stop offset="50%" style="stop-color:#D4A843" /> <stop offset="100%" style="stop-color:#926117" /> </linearGradient>
+                </defs>
+
+                <circle cx="12" cy="12" r="10" stroke="url(#goldGradient)" stroke-width="2" />
+                
+                <path 
+                  d="M12 6V18M15 8.5C15 8.5 14.5 7 12 7C9.5 7 9 8.5 9 9.5C9 11.5 15 11.5 15 14.5C15 15.5 14.5 17 12 17C9.5 17 9 15.5 9 15.5M12 6V5M12 18V19" 
+                  stroke="url(#goldGradient)" 
+                  stroke-width="2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"
+                />
               </svg>
-              <span class="text-gray-400 text-[10px] sm:text-[11px] uppercase tracking-wider font-medium">판돈</span>
+              <span class="text-gray-400 text-[11px] sm:text-[15px] uppercase tracking-wider font-medium">POT</span>
               <span class="text-sutda-gold font-bold text-base sm:text-xl pot-amount leading-none tabular-nums">
                 {{ displayPot.toLocaleString() }}원
               </span>
