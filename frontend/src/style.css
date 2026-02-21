@@ -2,61 +2,119 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =====================================================
+   BASE — 우드 텍스처 배경 + 비네팅
+   ===================================================== */
 @layer base {
   html, body {
-    @apply bg-sutda-dark text-white font-sans;
+    @apply text-white;
+    font-family: 'Noto Serif KR', 'Nanum Myeongjo', Georgia, serif;
     min-height: 100%;
+    /* 목재 질감: 미세 나뭇결 라인 레이어링 */
+    background-color: #1a0f0f;
+    background-image:
+      /* 나뭇결 – 수평 미세 결 */
+      repeating-linear-gradient(
+        91deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(255, 190, 80, 0.018) 2px,
+        rgba(255, 190, 80, 0.018) 3px,
+        transparent 3px,
+        transparent 9px
+      ),
+      /* 나뭇결 – 사선 결 (깊이감) */
+      repeating-linear-gradient(
+        87deg,
+        transparent 0px,
+        transparent 5px,
+        rgba(0, 0, 0, 0.07) 5px,
+        rgba(0, 0, 0, 0.07) 6px,
+        transparent 6px,
+        transparent 18px
+      ),
+      /* 베이스 – 중간 밝고 외곽 어두운 목재 입체감 */
+      linear-gradient(
+        160deg,
+        #231212 0%,
+        #1a0f0f 35%,
+        #200d0d 65%,
+        #160a0a 100%
+      );
   }
+
+  /* 비네팅 오버레이 — 외곽 어둡게 (최상위 레이어) */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(
+      ellipse 85% 75% at 50% 40%,
+      transparent 0%,
+      rgba(0, 0, 0, 0.55) 65%,
+      rgba(0, 0, 0, 0.82) 100%
+    );
+    pointer-events: none;
+    z-index: 9990;
+  }
+
   #app {
-    min-height: 100%;
+    position: relative;
+    z-index: 9991;
+    min-height: 100vh;
   }
 }
 
+/* =====================================================
+   COMPONENTS
+   ===================================================== */
 @layer components {
-  /* ===== 카드 앞면 ===== */
+
+  /* ─── 카드 앞면 ─── */
   .sutda-card {
     @apply w-[4.2rem] h-[6.3rem] sm:w-24 sm:h-[9.6rem]
            rounded-lg sm:rounded-xl
-           border-2 border-sutda-gold
            bg-white overflow-hidden
-           shadow-lg select-none;
+           select-none;
+    border: 2px solid #d4af37;
+    box-shadow:
+      0 6px 20px rgba(0, 0, 0, 0.6),
+      0 2px 6px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 
-  /* ===== 카드 뒷면 (프리미엄 패턴) ===== */
+  /* ─── 카드 뒷면 (프리미엄 패턴) ─── */
   .sutda-card-back {
     @apply w-[4.2rem] h-[6.3rem] sm:w-24 sm:h-[9.6rem]
            rounded-lg sm:rounded-xl
-           border-2 border-sutda-gold
-           shadow-lg select-none
-           relative overflow-hidden;
+           select-none relative overflow-hidden;
+    border: 2px solid #d4af37;
     background:
-      /* 격자 패턴 */
       repeating-linear-gradient(
         45deg,
         transparent,
         transparent 4px,
-        rgba(0,0,0,0.15) 4px,
-        rgba(0,0,0,0.15) 5px
+        rgba(0, 0, 0, 0.18) 4px,
+        rgba(0, 0, 0, 0.18) 5px
       ),
-      /* 기본 그라디언트 */
       linear-gradient(135deg, #7b0f0f 0%, #3d0606 50%, #5c0d0d 100%);
     box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.08),
-      inset 0 -1px 0 rgba(0,0,0,0.3),
-      0 4px 12px rgba(0,0,0,0.4);
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+      0 6px 20px rgba(0, 0, 0, 0.55),
+      0 2px 8px rgba(0, 0, 0, 0.4);
   }
 
-  /* 카드 뒷면 중앙 장식 */
   .sutda-card-back::after {
     content: '';
     position: absolute;
     inset: 4px;
-    border: 1px solid rgba(212, 168, 67, 0.30);
+    border: 1px solid rgba(212, 175, 55, 0.35);
     border-radius: 0.25rem;
-    background: rgba(255,255,255,0.02);
+    background: rgba(255, 255, 255, 0.02);
   }
 
-  /* ===== 카드 뒤집기 애니메이션 ===== */
+  /* ─── 카드 뒤집기 애니메이션 ─── */
   .card-flip-container {
     perspective: 600px;
     @apply w-[4.2rem] h-[6.3rem] sm:w-24 sm:h-[9.6rem];
@@ -74,49 +132,65 @@
     @apply absolute inset-0;
     backface-visibility: hidden;
   }
-  .card-back-face {
-    transform: rotateY(0deg);
-  }
-  .card-front {
-    transform: rotateY(180deg);
-  }
+  .card-back-face { transform: rotateY(0deg); }
+  .card-front     { transform: rotateY(180deg); }
 
-  /* ===== 버튼: Primary (금색) ===== */
+  /* ─── 버튼: Primary (금색 그라데이션) ─── */
   .btn-primary {
-    @apply px-6 py-2.5
-           bg-sutda-gold text-black font-bold
-           rounded-lg
-           hover:bg-yellow-400
-           active:scale-95
-           transition-all duration-200
+    @apply px-6 py-2.5 font-bold rounded-lg
+           active:scale-95 transition-all duration-200
            disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
-    box-shadow: 0 1px 8px rgba(212, 168, 67, 0.30);
+    background: linear-gradient(135deg, #f4e47a 0%, #d4af37 50%, #a87820 100%);
+    color: #1a0f0f;
+    border: 1px solid rgba(212, 175, 55, 0.5);
+    box-shadow:
+      0 4px 14px rgba(212, 175, 55, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #fff8a0 0%, #e8c53a 50%, #c89c30 100%);
+    box-shadow:
+      0 6px 22px rgba(212, 175, 55, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
   }
 
-  /* ===== 버튼: Danger (빨강) ===== */
+  /* ─── 버튼: Danger (다크 레드) ─── */
   .btn-danger {
-    @apply px-6 py-2.5
-           bg-sutda-red text-white font-bold
-           rounded-lg
-           hover:bg-red-600
-           active:scale-95
-           transition-all duration-200
+    @apply px-6 py-2.5 font-bold rounded-lg
+           active:scale-95 transition-all duration-200
            disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
+    background: linear-gradient(135deg, #c0392b 0%, #8b0000 100%);
+    color: #fff;
+    border: 1px solid rgba(139, 0, 0, 0.6);
+    box-shadow: 0 4px 14px rgba(139, 0, 0, 0.35);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: linear-gradient(135deg, #e04030 0%, #a01010 100%);
+    box-shadow: 0 6px 20px rgba(139, 0, 0, 0.5);
+    transform: translateY(-1px);
   }
 
-  /* ===== 버튼: Secondary (회색) ===== */
+  /* ─── 버튼: Secondary (목재 패널 느낌) ─── */
   .btn-secondary {
-    @apply px-6 py-2.5
-           bg-gray-700 text-white font-bold
-           rounded-lg
-           border border-gray-600
-           hover:bg-gray-600 hover:border-gray-500
-           active:scale-95
-           transition-all duration-200
+    @apply px-6 py-2.5 font-bold rounded-lg
+           active:scale-95 transition-all duration-200
            disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100;
+    background: rgba(44, 26, 26, 0.9);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    box-shadow:
+      0 4px 12px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    border-color: rgba(212, 175, 55, 0.4);
+    box-shadow:
+      0 6px 18px rgba(0, 0, 0, 0.5),
+      0 0 10px rgba(212, 175, 55, 0.08);
   }
 
-  /* ===== 베팅 버튼 공통 (모바일 터치 최적화) ===== */
+  /* ─── 베팅 버튼 공통 (모바일 터치 최적화) ─── */
   .btn-bet {
     @apply px-3 py-2 text-[13px]
            sm:px-6 sm:py-2.5 sm:text-sm

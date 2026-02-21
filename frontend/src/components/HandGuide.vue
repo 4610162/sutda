@@ -33,7 +33,6 @@ const HANDS = [
   { tier: "꼴찌",  name: "망통",   desc: "합산 mod 10 = 0 (광땡 아닐 때)", color: "text-red-400" },
 ] as const;
 
-// 등급별 그룹핑
 const TIERS = ["광땡", "땡", "특수", "끗", "꼴찌"] as const;
 type Tier = typeof TIERS[number];
 
@@ -44,64 +43,112 @@ function handsForTier(tier: Tier) {
 
 <template>
   <Teleport to="body">
-    <div
-      class="fixed inset-0 z-50 flex items-center justify-center p-4"
-      @click.self="emit('close')"
-    >
-      <div class="absolute inset-0 bg-black/75" @click="emit('close')"></div>
-
+    <Transition name="guide-fade">
+      <!--
+        [핵심 구조]
+        - 이 div가 배경(Overlay) 역할을 겸함: 클릭하면 닫힘
+        - z-index를 인라인 style로 9999 지정 → Tailwind 유틸리티 클래스나
+          Game.vue scoped z-index의 stacking context에 무관하게 항상 최상단
+        - backdrop-blur-sm: 뒤 배경과 시각적으로 확실히 분리
+      -->
       <div
-        class="relative z-10 bg-gray-800 border-2 border-sutda-gold/60 rounded-2xl
-               w-full max-w-lg shadow-2xl overflow-hidden"
-        style="max-height: 85vh;"
+        class="fixed inset-0 flex items-center justify-center p-4
+               bg-black/65 backdrop-blur-sm"
+        style="z-index: 9999;"
+        @click="emit('close')"
       >
-        <!-- 헤더 -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-          <h2 class="text-xl font-bold text-sutda-gold">족보 가이드</h2>
-          <button
-            @click="emit('close')"
-            class="text-gray-400 hover:text-white text-2xl leading-none transition-colors"
-            aria-label="닫기"
-          >
-            ×
-          </button>
-        </div>
+        <!--
+          [팝업 본체]
+          - @click.stop: 내부 클릭 이벤트가 부모(overlay)로 버블링되는 것을 차단
+          - z-index를 인라인 style로 10000 지정 → overlay 위에 확실히 위치
+          - pointer-events: auto (기본값) → 팝업 내 모든 클릭 정상 동작
+        -->
+        <div
+          class="relative flex flex-col bg-gray-900 border border-sutda-gold/50
+                 rounded-2xl w-full max-w-lg shadow-[0_0_40px_rgba(0,0,0,0.7)]
+                 ring-1 ring-white/10"
+          style="max-height: 85vh; z-index: 10000;"
+          @click.stop
+        >
+          <!-- 상단 골드 글로우 라인 -->
+          <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sutda-gold/70 to-transparent rounded-t-2xl"></div>
 
-        <!-- 순위 설명 -->
-        <div class="overflow-y-auto px-6 py-4 space-y-4" style="max-height: calc(85vh - 72px);">
-          <p class="text-gray-400 text-xs">위에서 아래로 강한 순서입니다.</p>
-
-          <div v-for="tier in TIERS" :key="tier">
-            <!-- 등급 헤더 -->
-            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
-              {{ tier }}
+          <!-- 헤더 -->
+          <div class="flex items-center justify-between px-5 py-3.5 border-b border-white/10 flex-shrink-0">
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-bold text-sutda-gold tracking-wide">족보 가이드</h2>
             </div>
-            <div class="space-y-1">
-              <div
-                v-for="hand in handsForTier(tier)"
-                :key="hand.name"
-                class="flex items-center justify-between bg-gray-700/60 rounded-lg px-4 py-2"
-              >
-                <span class="font-bold text-sm" :class="hand.color">{{ hand.name }}</span>
-                <span class="text-gray-400 text-xs">{{ hand.desc }}</span>
-              </div>
-            </div>
+            <button
+              @click="emit('close')"
+              class="w-7 h-7 flex items-center justify-center rounded-full
+                     text-gray-500 hover:text-white hover:bg-white/10
+                     transition-colors leading-none text-xl"
+              aria-label="닫기"
+            >
+              ×
+            </button>
           </div>
 
-          <!-- 추가 규칙 -->
-          <div class="bg-gray-700/40 rounded-lg p-4 mt-2">
-            <p class="text-xs text-gray-400 font-semibold mb-2">추가 규칙</p>
-            <ul class="text-xs text-gray-400 space-y-1 list-disc list-inside">
-              <li>광땡은 해당 월 카드가 모두 <span class="text-yellow-300">光(Hikari)</span>일 때만 성립</li>
-              <li>땡은 같은 월 두 장 (1~10월, 장땡=10땡)</li>
-              <li>특수패는 땡보다 약하지만 끗보다 강함</li>
-              <li>끗은 두 장 월 합계의 1의 자리 (높을수록 강함)</li>
-              <li>망통(0끗)은 특수패가 아닐 때 가장 약함</li>
-              <li>콜(Call)은 상대 베팅에 맞추고 즉시 족보 비교</li>
-            </ul>
+          <!-- 스크롤 가능한 콘텐츠 영역 -->
+          <div class="overflow-y-auto flex-1 px-5 py-4 space-y-4 min-h-0">
+            <p class="text-gray-500 text-xs">위에서 아래로 강한 순서입니다.</p>
+
+            <div v-for="tier in TIERS" :key="tier" class="space-y-1.5">
+              <!-- 등급 헤더 -->
+              <div class="flex items-center gap-2">
+                <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
+                  {{ tier }}
+                </div>
+                <div class="flex-1 h-px bg-white/5"></div>
+              </div>
+              <!-- 패 목록 -->
+              <div class="space-y-1">
+                <div
+                  v-for="hand in handsForTier(tier)"
+                  :key="hand.name"
+                  class="flex items-center justify-between
+                         bg-white/5 hover:bg-white/8 rounded-lg px-3.5 py-2
+                         transition-colors"
+                >
+                  <span class="font-bold text-sm" :class="hand.color">{{ hand.name }}</span>
+                  <span class="text-gray-500 text-xs">{{ hand.desc }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 추가 규칙 -->
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 mt-2">
+              <p class="text-[11px] text-gray-400 font-semibold mb-2 uppercase tracking-wider">추가 규칙</p>
+              <ul class="text-xs text-gray-500 space-y-1.5 list-none">
+                <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>광땡은 해당 월 카드가 모두 <span class="text-yellow-300">光(Hikari)</span>일 때만 성립</li>
+                <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>땡은 같은 월 두 장 (1~10월, 장땡 = 10땡)</li>
+                <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>특수패는 땡보다 약하지만 끗보다 강함</li>
+                <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>끗은 두 장 월 합계의 1의 자리 (높을수록 강함)</li>
+                <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>망통(0끗)은 특수패가 아닐 때 가장 약함</li>
+                <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>콜(Call)은 상대 베팅에 맞추고 즉시 족보 비교</li>
+              </ul>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Transition>
   </Teleport>
 </template>
+
+<style scoped>
+/* 팝업 등장/퇴장 트랜지션 */
+.guide-fade-enter-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.guide-fade-leave-active {
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+.guide-fade-enter-from {
+  opacity: 0;
+  transform: scale(0.97);
+}
+.guide-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.97);
+}
+</style>

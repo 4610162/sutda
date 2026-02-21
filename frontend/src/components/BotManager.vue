@@ -25,7 +25,7 @@ const availableBots = computed<BotDefinition[]>(() =>
 );
 
 function personalityLabel(personality: string): string {
-  return personality === "aggressive" ? "공격형" : "수비형";
+  return personality === "aggressive" ? "어그레시브" : "타이트";
 }
 
 function personalityColor(personality: string): string {
