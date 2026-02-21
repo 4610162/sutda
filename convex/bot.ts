@@ -208,6 +208,11 @@ const MAX_RAISE_PER_ROUND = 3;
  *
  * 보정 승률(adjustedWinRate) 사용 + 레이즈 캡 적용
  */
+
+// 블러핑 확률 설정
+const AGGRESSIVE_BLUFF_CHANCE = 0.25; // 25%
+const TIGHT_BLUFF_CHANCE = 0.15;      // 15%
+
 const STRATEGY_MAP: Record<
   BotPersonality,
   (wr: number, ev: number, gc: GameContext) => BetAction
@@ -215,29 +220,47 @@ const STRATEGY_MAP: Record<
   aggressive: (wr, ev, gc) => {
     const awr = getAdjustedWinRate(wr, gc);
     const raiseCapped = gc.botRaiseCount >= MAX_RAISE_PER_ROUND;
+    
+    // 1. 블러핑 판단: 승률이 낮을 때(40% 미만) 확률적으로 발동하거나, 이미 레이즈를 시작했다면 유지
+    const isBluffing = wr < 0.4 && (Math.random() < AGGRESSIVE_BLUFF_CHANCE || gc.botRaiseCount > 0);
 
     if (gc.callCost === 0) {
-      if (!raiseCapped && awr > 0.75) return "half";
-      if (!raiseCapped && gc.isFirstPlayer && awr > 0.45) return "pping";
+      // 블러핑 중이면 낮은 승률에도 하프/삥으로 압박
+      if (!raiseCapped && (awr > 0.75 || isBluffing)) return "half";
+      if (!raiseCapped && gc.isFirstPlayer && (awr > 0.45 || isBluffing)) return "pping";
       return "check";
     }
-    // 레이즈 캡 도달 시 콜/다이만 허용
-    if (!raiseCapped && awr > 0.7) return "ddadang";
-    if (ev > 0 || awr > 0.3) return "call";
+
+    // 2. 따당 로직: 블러핑 중이면 50% 확률로 추가 레이즈 감행
+    if (!raiseCapped && (awr > 0.7 || (isBluffing && Math.random() < 0.5))) return "ddadang";
+
+    // 3. 콜/다이: 블러핑 중에는 승률 문턱값을 0.1로 낮춰 끈질기게 따라붙음
+    const callThreshold = isBluffing ? 0.1 : 0.3;
+    if (ev > 0 || awr > callThreshold) return "call";
+    
     return "die";
   },
 
   tight: (wr, ev, gc) => {
     const awr = getAdjustedWinRate(wr, gc);
     const raiseCapped = gc.botRaiseCount >= MAX_RAISE_PER_ROUND;
+    
+    // 1. 블러핑 판단: 매우 낮은 승률(30% 미만)에서 신중하게 블러핑 시도
+    const isBluffing = wr < 0.3 && (Math.random() < TIGHT_BLUFF_CHANCE || gc.botRaiseCount > 0);
 
     if (gc.callCost === 0) {
-      if (!raiseCapped && awr > 0.8) return "half";
-      if (!raiseCapped && gc.isFirstPlayer && awr > 0.6) return "pping";
+      if (!raiseCapped && (awr > 0.8 || isBluffing)) return "half";
+      if (!raiseCapped && gc.isFirstPlayer && (awr > 0.6 || isBluffing)) return "pping";
       return "check";
     }
-    if (!raiseCapped && awr > 0.8) return "ddadang";
-    if (ev > 0 && awr > 0.5) return "call";
+
+    // 2. 따당 로직: 타이트 봇은 블러핑 중이라도 따당 빈도는 낮게 유지 (30% 확률)
+    if (!raiseCapped && (awr > 0.8 || (isBluffing && Math.random() < 0.3))) return "ddadang";
+
+    // 3. 콜/다이: 블러핑 중이면 평소(0.5)보다 낮은 0.2의 승률만 있어도 콜
+    const callThreshold = isBluffing ? 0.2 : 0.5;
+    if (ev > 0 && awr > callThreshold) return "call";
+    
     return "die";
   },
 };

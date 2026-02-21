@@ -246,6 +246,10 @@ export function calculateRank(cardA: SutdaCard, cardB: SutdaCard): HandResult {
  * 반환:
  *  - winnerId: 승자 playerId (null이면 재경기)
  *  - isRematch: 재경기 여부
+ *  - rematchPlayerIds: 재경기 참여 대상 playerId 목록
+ *    - 구사/멍텅구리구사: 모든 활성 플레이어 (올인 포함)
+ *    - 일반 동점: 동점인 플레이어들만
+ *    - 승패 확정 시: 빈 배열
  *  - results: 각 플레이어의 최종 HandResult (강등 반영)
  */
 export function resolveSpecialHands(
@@ -253,6 +257,7 @@ export function resolveSpecialHands(
 ): {
   winnerId: string | null;
   isRematch: boolean;
+  rematchPlayerIds: string[];
   results: { playerId: string; result: HandResult }[];
 } {
   // 특수패가 없으면 기존 rank 비교
@@ -261,9 +266,14 @@ export function resolveSpecialHands(
     const best = playerHands.reduce((a, b) => (b.result.rank > a.result.rank ? b : a));
     const tied = playerHands.filter((ph) => ph.result.rank === best.result.rank);
     if (tied.length > 1) {
-      return { winnerId: null, isRematch: true, results: playerHands };
+      return {
+        winnerId: null,
+        isRematch: true,
+        rematchPlayerIds: tied.map((ph) => ph.playerId),
+        results: playerHands,
+      };
     }
-    return { winnerId: best.playerId, isRematch: false, results: playerHands };
+    return { winnerId: best.playerId, isRematch: false, rematchPlayerIds: [], results: playerHands };
   }
 
   // 상대 중 특수패가 아닌 "일반 최고 rank" 산출
@@ -326,16 +336,18 @@ export function resolveSpecialHands(
     for (const gp of gusaPlayers) {
       const sp = gp.result.special!;
       if (sp.rematchIfOpponentRankBelow !== undefined && bestNonSpecialRank <= sp.rematchIfOpponentRankBelow) {
-        // 재경기 발동: 구사/멍텅구리구사 이름 유지
+        // 재경기 발동: 모든 활성 플레이어 참여 (올인으로 잔액 0인 플레이어도 포함)
+        const rematchResults = resolved.map((ph) => ({
+          ...ph,
+          result: ph.result.special
+            ? { rank: ph.result.rank, name: ph.result.name, score: 0 }
+            : ph.result,
+        }));
         return {
           winnerId: null,
           isRematch: true,
-          results: resolved.map((ph) => ({
-            ...ph,
-            result: ph.result.special
-              ? { rank: ph.result.rank, name: ph.result.name, score: 0 }
-              : ph.result,
-          })),
+          rematchPlayerIds: playerHands.map((ph) => ph.playerId),
+          results: rematchResults,
         };
       }
     }
@@ -353,18 +365,28 @@ export function resolveSpecialHands(
     const best = finalResolved.reduce((a, b) => (b.result.rank > a.result.rank ? b : a));
     const tied = finalResolved.filter((ph) => ph.result.rank === best.result.rank);
     if (tied.length > 1) {
-      return { winnerId: null, isRematch: true, results: finalResolved };
+      return {
+        winnerId: null,
+        isRematch: true,
+        rematchPlayerIds: tied.map((ph) => ph.playerId),
+        results: finalResolved,
+      };
     }
-    return { winnerId: best.playerId, isRematch: false, results: finalResolved };
+    return { winnerId: best.playerId, isRematch: false, rematchPlayerIds: [], results: finalResolved };
   }
 
   // 일반 rank 비교 (특수패 해석 완료 후)
   const best = resolved.reduce((a, b) => (b.result.rank > a.result.rank ? b : a));
   const tied = resolved.filter((ph) => ph.result.rank === best.result.rank);
   if (tied.length > 1) {
-    return { winnerId: null, isRematch: true, results: resolved };
+    return {
+      winnerId: null,
+      isRematch: true,
+      rematchPlayerIds: tied.map((ph) => ph.playerId),
+      results: resolved,
+    };
   }
-  return { winnerId: best.playerId, isRematch: false, results: resolved };
+  return { winnerId: best.playerId, isRematch: false, rematchPlayerIds: [], results: resolved };
 }
 
 export function compareHands(handA: [SutdaCard, SutdaCard], handB: [SutdaCard, SutdaCard]): number {

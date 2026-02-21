@@ -334,9 +334,11 @@ export const setReady = mutation({
 
     let eligible: typeof updatedPlayers;
     if (isRematchMode) {
-      // 재경기: 무승부 플레이어 중 잔액 있는 플레이어만
+      // 재경기: rematchPlayerIds에 포함된 플레이어는 잔액 0(올인)이어도 참여 허용
+      // - 잔액 > 0: 정상 참여
+      // - 잔액 = 0: 올인 상태로 카드를 받고 베팅 없이 쇼다운까지 진행
       eligible = updatedPlayers.filter(
-        (p) => rematchIds.includes(p.playerId) && p.balance >= BASE_BET,
+        (p) => rematchIds.includes(p.playerId) && p.balance >= 0,
       );
     } else {
       // 일반 게임: 잔액 있는 모든 플레이어
@@ -387,12 +389,17 @@ export const setReady = mutation({
         // turnOrder 순서에 맞게 카드 배분
         const targetPlayerId = turnOrder[i];
         const dbP = players.find((p) => p.playerId === targetPlayerId)!;
+
+        // 올인 플레이어(잔액 0): 앤티 없이 참여, totalBet=0으로 시작 (쇼다운까지 진행)
+        const isAllin = dbP.balance === 0;
+        const anteBet = isAllin ? 0 : BASE_BET;
+
         await ctx.db.patch(dbP._id, {
           cards: hands[i],
-          totalBet: BASE_BET,
+          totalBet: anteBet,
           folded: false,
           ready: false,
-          balance: dbP.balance - BASE_BET,
+          balance: dbP.balance - anteBet,
           handName: undefined,
           handRank: undefined,
           lastAction: undefined,
@@ -411,9 +418,12 @@ export const setReady = mutation({
       // 누적 판돈(재경기 이월분) + 새 판돈
       const accumulated = room.accumulatedPot ?? 0;
 
+      // 올인 플레이어(잔액 0)는 앤티를 내지 않으므로 실제 기여 인원만 계산
+      const antePayers = eligible.filter((p) => p.balance > 0).length;
+
       await ctx.db.patch(room._id, {
         phase: "playing",
-        pot: accumulated + turnOrder.length * BASE_BET,
+        pot: accumulated + antePayers * BASE_BET,
         turnOrder,
         turnIndex: 0,
         currentTurnId: turnOrder[0],
@@ -591,24 +601,9 @@ async function determineWinner(ctx: { db: any; scheduler: any }, roomId: any, pl
       }
     }
 
-    // 재경기 참여 플레이어 목록 결정
-    // 구사/멍텅구리구사 재경기: 모든 활성 플레이어가 참여
-    // 일반 동점 재경기: 동점인 플레이어들만 참여
-    const hasGusaRematch = resolution.results.some(
-      (r) => r.result.special?.type === "gusa" || r.result.special?.type === "mung_gusa"
-        || r.result.name === "구사" || r.result.name === "멍텅구리구사",
-    );
-    let tiedPlayerIds: string[];
-    if (hasGusaRematch) {
-      // 구사 재경기: 모든 활성(비폴드) 플레이어 참여
-      tiedPlayerIds = players.map((p) => p.playerId as string);
-    } else {
-      // 일반 동점: 가장 높은 rank인 플레이어들만
-      const bestRank = Math.max(...resolution.results.map((r) => r.result.rank));
-      tiedPlayerIds = resolution.results
-        .filter((r) => r.result.rank === bestRank)
-        .map((r) => r.playerId);
-    }
+    // 재경기 참여 플레이어 목록: resolveSpecialHands가 이미 정확히 계산함
+    // (구사/멍텅구리구사 → 전원, 일반 동점 → 동점자만, 올인 플레이어 포함)
+    const tiedPlayerIds = resolution.rematchPlayerIds;
 
     // 모든 플레이어 상태 초기화
     const allPlayers = await ctx.db
