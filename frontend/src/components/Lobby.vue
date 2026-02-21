@@ -768,4 +768,238 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
   max-height: 140px;
   margin-bottom: 1.25rem;
 }
+
+/* ══════════════════════════════════════
+   방 목록 스크롤바 (넘칠 때만 표시)
+══════════════════════════════════════ */
+.room-grid {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.3) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+.room-grid::-webkit-scrollbar        { width: 3px; }
+.room-grid::-webkit-scrollbar-track  { background: transparent; }
+.room-grid::-webkit-scrollbar-thumb  {
+  background: rgba(212, 175, 55, 0.35);
+  border-radius: 2px;
+}
+
+/* ══════════════════════════════════════
+   모바일 세로 화면 핏-투-스크린 최적화
+   ── 가로폭 기준: 768px 이하
+══════════════════════════════════════ */
+@media (max-width: 768px) {
+  .lobby-wrapper {
+    padding: 0 0.25rem;
+  }
+
+  .lobby-content {
+    gap: 1rem;
+  }
+
+  .lobby-header {
+    padding: 1rem 0 0.125rem;
+  }
+
+  /* clamp(최소, 뷰포트 기준, 최대) 로 화면 폭에 따라 유동 축소 */
+  .lobby-title {
+    font-size: clamp(3rem, 13vw, 4.5rem);
+    margin-bottom: 0.4rem;
+  }
+
+  .lobby-subtitle {
+    margin-bottom: 0.75rem;
+  }
+
+  .glass-panel {
+    padding: 1.125rem;
+  }
+
+  .panel-header {
+    margin-bottom: 1rem;
+  }
+
+  .state-box {
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* ══════════════════════════════════════
+   ── 세로 높이 기준: 800px 이하
+══════════════════════════════════════ */
+@media (max-height: 800px) {
+  .lobby-content {
+    gap: 0.875rem;
+  }
+
+  .lobby-header {
+    padding: 0.75rem 0 0.1rem;
+  }
+
+  .lobby-title {
+    font-size: clamp(2.75rem, 9vw, 4rem);
+    margin-bottom: 0.3rem;
+  }
+
+  .lobby-subtitle {
+    margin-bottom: 0.625rem;
+  }
+
+  .glass-panel {
+    padding: 1rem;
+  }
+
+  .panel-header {
+    margin-bottom: 0.875rem;
+  }
+
+  .state-box {
+    padding: 1.25rem 1rem;
+  }
+
+  /* 방 목록: 남은 세로 공간의 30%까지만 차지하고 내부 스크롤 */
+  .room-grid {
+    max-height: 30vh;
+    overflow-y: auto;
+  }
+}
+
+/* ══════════════════════════════════════
+   ── 세로 높이 기준: 700px 이하
+══════════════════════════════════════ */
+@media (max-height: 700px) {
+  .lobby-content {
+    gap: 0.625rem;
+  }
+
+  .lobby-header {
+    padding: 0.5rem 0 0;
+  }
+
+  .lobby-title {
+    font-size: clamp(2.25rem, 8vw, 3.25rem);
+    margin-bottom: 0.2rem;
+  }
+
+  .lobby-subtitle {
+    font-size: 0.65rem;
+    margin-bottom: 0.375rem;
+  }
+
+  .glass-panel {
+    padding: 0.875rem;
+    border-radius: 0.75rem;
+  }
+
+  .panel-label {
+    margin-bottom: 0.375rem;
+  }
+
+  .panel-header {
+    margin-bottom: 0.625rem;
+  }
+
+  .wood-input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.825rem;
+  }
+
+  .state-box {
+    padding: 1rem;
+  }
+
+  .room-grid {
+    max-height: 28vh;
+    overflow-y: auto;
+    gap: 0.625rem;
+  }
+
+  /* 장식 카드 소형화 */
+  .decor-card {
+    width: 2.4rem;
+    height: 3.6rem;
+    opacity: 0.35;
+  }
+}
+
+/* ══════════════════════════════════════
+   ── 세로 높이 기준: 600px 이하
+      (아이폰 SE 가로 모드 / 초소형 기기)
+══════════════════════════════════════ */
+@media (max-height: 600px) {
+  .lobby-content {
+    gap: 0.5rem;
+  }
+
+  .lobby-header {
+    padding: 0.375rem 0 0;
+  }
+
+  .lobby-title {
+    font-size: clamp(1.85rem, 7vw, 2.75rem);
+    margin-bottom: 0.125rem;
+  }
+
+  .lobby-subtitle {
+    font-size: 0.6rem;
+    letter-spacing: 0.35em;
+    margin-bottom: 0.25rem;
+  }
+
+  /* 황금 구분선은 공간 절약을 위해 숨김 */
+  .gold-divider {
+    display: none;
+  }
+
+  .glass-panel {
+    padding: 0.75rem;
+    border-radius: 0.625rem;
+  }
+
+  .panel-label {
+    font-size: 0.68rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .panel-header {
+    margin-bottom: 0.5rem;
+  }
+
+  .wood-input {
+    padding: 0.4rem 0.625rem;
+    font-size: 0.8rem;
+  }
+
+  .btn-create {
+    padding: 0.35rem 0.875rem;
+    font-size: 0.78rem;
+  }
+
+  .state-box {
+    padding: 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .room-grid {
+    max-height: 25vh;
+    overflow-y: auto;
+    gap: 0.5rem;
+  }
+
+  .room-card {
+    padding: 0.625rem;
+    gap: 0.3rem;
+  }
+
+  .room-join-btn {
+    padding: 0.35rem;
+    font-size: 0.72rem;
+    margin-top: 0.1rem;
+  }
+
+  /* 장식 카드는 공간 절약을 위해 숨김 */
+  .decor-cards {
+    display: none;
+  }
+}
 </style>

@@ -198,3 +198,29 @@
            sm:min-w-[44px] sm:min-h-[44px];
   }
 }
+
+/* =====================================================
+   MOBILE — 터치 & 렌더링 최적화
+   ===================================================== */
+
+/* 터치 기기 탭 하이라이트 제거 (iOS/Android 파란 오버레이 방지) */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 버튼·인풋 터치 피드백 향상 */
+button, input, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* 배경이 잘리지 않도록 html/body 가득 채움
+   (배경은 linear-gradient이므로 cover 불필요, 단 최소 높이만 보장) */
+html {
+  min-height: 100%;
+  min-height: -webkit-fill-available;  /* iOS Safari 뷰포트 높이 보정 */
+}
+
+body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
