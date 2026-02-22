@@ -12,6 +12,7 @@ const playerName = ref("");
 const newRoomCode = ref("");
 const showCreateForm = ref(false);
 const nameError = ref("");
+const showRulesModal = ref(false);
 
 onMounted(() => {
   const saved = localStorage.getItem("sutda_player_name");
@@ -65,22 +66,16 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
 <template>
   <div class="lobby-wrapper">
 
-    <!-- ── 장식용 화투 카드 (배경 분위기) ── -->
-    <div class="decor-cards" aria-hidden="true">
-      <div class="decor-card dc-1">
+    <!-- ── 최상단 화투패 행 (1월·3월·8월) ── -->
+    <div class="hwatu-row" aria-hidden="true">
+      <div class="hwatu-card hc-1">
         <img src="/cards/Hwatu_January_Hikari.svg" alt="" />
       </div>
-      <div class="decor-card dc-2">
-        <img src="/cards/Hwatu_August_Hikari.svg" alt="" />
-      </div>
-      <div class="decor-card dc-3">
+      <div class="hwatu-card hc-2">
         <img src="/cards/Hwatu_March_Hikari.svg" alt="" />
       </div>
-      <div class="decor-card dc-4">
-        <img src="/cards/Hwatu_November_Hikari.svg" alt="" />
-      </div>
-      <div class="decor-card dc-5">
-        <img src="/cards/Hwatu_December_Hikari.svg" alt="" />
+      <div class="hwatu-card hc-3">
+        <img src="/cards/Hwatu_August_Hikari.svg" alt="" />
       </div>
     </div>
 
@@ -116,7 +111,7 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
       <!-- 방 목록 패널 -->
       <div class="glass-panel">
         <div class="panel-header">
-          <h2 class="panel-title">열린 방</h2>
+          <h2 class="panel-title">방 목록</h2>
           <button
             @click="showCreateForm = !showCreateForm"
             class="btn-create"
@@ -129,7 +124,7 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
         <!-- 방 만들기 폼 -->
         <Transition name="slide-down">
           <div v-if="showCreateForm" class="create-form">
-            <label class="panel-label-sm">방 코드 (비워두면 자동 생성)</label>
+            <label class="panel-label-sm">방 이름 (비워두면 자동 생성)</label>
             <div class="create-form-row">
               <input
                 v-model="newRoomCode"
@@ -186,112 +181,187 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
         </div>
       </div>
 
+      <!-- ── 게임 규칙 버튼 ── -->
+      <footer class="rules-footer">
+        <button class="btn-rules" @click="showRulesModal = true">
+          <span class="btn-rules-icon">◈</span>
+          게임 규칙
+        </button>
+      </footer>
+
     </div>
+
+    <!-- ── 게임 규칙 모달 ── -->
+    <Transition name="modal-fade">
+      <div v-if="showRulesModal" class="modal-overlay" @click.self="showRulesModal = false">
+        <div class="modal-box">
+          <div class="modal-header">
+            <h2 class="modal-title">게임 규칙</h2>
+            <button class="modal-close" @click="showRulesModal = false">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="rules-section">
+              <h3 class="rules-section-title">기본 규칙</h3>
+              <ul class="rules-list">
+                <li>2~4명이 참여하여 진행합니다.</li>
+                <li>각 플레이어는 화투패 2장을 받습니다.</li>
+                <li>패의 합산 끝자리가 높을수록 유리합니다.</li>
+                <li>9가 최고이며, 0(망통)이 최하입니다.</li>
+                <li>베팅 후 최종 패를 공개하여 승자를 결정합니다.</li>
+              </ul>
+            </div>
+            <div class="rules-section">
+              <h3 class="rules-section-title">주요 족보 (강한 순)</h3>
+              <ul class="rules-list rules-list--rank">
+                <li><span class="rank-name">삼팔광땡</span> 3월 + 8월 (최강)</li>
+                <li><span class="rank-name">땡</span> 같은 월 2장 (숫자 높을수록 유리)</li>
+                <li><span class="rank-name">알리</span> 1월 + 2월</li>
+                <li><span class="rank-name">독사</span> 1월 + 4월</li>
+                <li><span class="rank-name">구삥</span> 1월 + 9월</li>
+                <li><span class="rank-name">장삥</span> 1월 + 10월</li>
+                <li><span class="rank-name">장사</span> 4월 + 10월</li>
+                <li><span class="rank-name">세륙</span> 4월 + 6월</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
   </div>
 </template>
 
 <style scoped>
 /* ══════════════════════════════════════
-   레이아웃
+   최상위 래퍼 — 아이폰 17 프로 세로 최적화
+   전체 뷰포트 높이를 flex column 으로 분할
 ══════════════════════════════════════ */
 .lobby-wrapper {
   position: relative;
   width: 100%;
   max-width: 32rem;
   margin: 0 auto;
-  padding: 0 0.5rem;
+  min-height: 100svh; /* safe viewport height (구형 브라우저는 100vh 폴백) */
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
+/* ══════════════════════════════════════
+   최상단 화투패 행 (부채꼴 배치)
+══════════════════════════════════════ */
+.hwatu-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 2rem;
+  padding: 1.5rem 1.25rem 0.875rem;
+  flex-shrink: 0;
+}
+
+.hwatu-card {
+  width: 3.1rem;
+  height: 4.65rem;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  border: 1.5px solid rgba(212, 175, 55, 0.5);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.75),
+    0 3px 8px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.hwatu-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 부채꼴 회전 + 개별 플로팅 */
+.hc-1 {
+  transform: rotate(-12deg) translateY(6px);
+  animation: hfloat1 6.2s ease-in-out infinite;
+}
+.hc-2 {
+  transform: rotate(0deg) translateY(0);
+  animation: hfloat2 7.4s ease-in-out infinite;
+}
+.hc-3 {
+  transform: rotate(12deg) translateY(6px);
+  animation: hfloat3 5.8s ease-in-out infinite;
+}
+
+@keyframes hfloat1 {
+  0%, 100% { transform: rotate(-12deg) translateY(6px); }
+  50%       { transform: rotate(-12deg) translateY(0px); }
+}
+@keyframes hfloat2 {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  50%       { transform: rotate(0deg) translateY(-6px); }
+}
+@keyframes hfloat3 {
+  0%, 100% { transform: rotate(12deg) translateY(6px); }
+  50%       { transform: rotate(12deg) translateY(0px); }
+}
+
+
+/* ══════════════════════════════════════
+   메인 콘텐츠 영역 (flex: 1 로 남은 공간 차지)
+══════════════════════════════════════ */
 .lobby-content {
   position: relative;
   z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  flex: 1;
+  padding: 0 1.25rem;
 }
 
 /* ══════════════════════════════════════
-   장식 화투 카드
+   최하단 게임 규칙 푸터
 ══════════════════════════════════════ */
-.decor-cards {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: visible;
-  z-index: 1;
+.rules-footer {
+  display: flex;
+  justify-content: center;
+  padding: 0.25rem 0 1rem;
 }
 
-.decor-card {
-  position: absolute;
-  width: 2.8rem;
-  height: 4.2rem;
-  border-radius: 0.35rem;
-  overflow: hidden;
-  border: 1.5px solid rgba(212, 175, 55, 0.45);
-  box-shadow:
-    0 10px 28px rgba(0, 0, 0, 0.75),
-    0 3px 8px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  opacity: 0.5;
+.btn-rules {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 2.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 0.12em;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  color: rgba(212, 175, 55, 0.7);
+  border: 1px solid rgba(212, 175, 55, 0.32);
+  box-shadow: 0 0 18px rgba(212, 175, 55, 0.05);
 }
 
-.decor-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.btn-rules:hover {
+  background: rgba(212, 175, 55, 0.08);
+  color: rgba(212, 175, 55, 0.95);
+  border-color: rgba(212, 175, 55, 0.55);
+  box-shadow: 0 0 24px rgba(212, 175, 55, 0.18);
+  transform: translateY(-1px);
 }
 
-/* 카드 배치 & 개별 플로팅 애니메이션 */
-.dc-1 {
-  top: 2.5rem;
-  left: -2.4rem;
-  transform: rotate(-17deg);
-  animation: float1 6.2s ease-in-out infinite;
-}
-.dc-2 {
-  top: 7.5rem;
-  left: -3.2rem;
-  transform: rotate(-7deg);
-  animation: float2 7.4s ease-in-out infinite;
-}
-.dc-3 {
-  top: 2rem;
-  right: -2rem;
-  transform: rotate(14deg);
-  animation: float3 5.8s ease-in-out infinite;
-}
-.dc-4 {
-  top: 8rem;
-  right: -3rem;
-  transform: rotate(21deg);
-  animation: float4 8.1s ease-in-out infinite;
-}
-.dc-5 {
-  top: 1rem;
-  right: 2.5rem;
-  transform: rotate(7deg) scale(0.82);
-  animation: float5 6.7s ease-in-out infinite;
+.btn-rules:active {
+  transform: scale(0.96);
 }
 
-@keyframes float1 {
-  0%, 100% { transform: rotate(-17deg) translateY(0); }
-  50%       { transform: rotate(-17deg) translateY(-7px); }
-}
-@keyframes float2 {
-  0%, 100% { transform: rotate(-7deg) translateY(0); }
-  50%       { transform: rotate(-7deg) translateY(-5px); }
-}
-@keyframes float3 {
-  0%, 100% { transform: rotate(14deg) translateY(0); }
-  50%       { transform: rotate(14deg) translateY(-9px); }
-}
-@keyframes float4 {
-  0%, 100% { transform: rotate(21deg) translateY(0); }
-  50%       { transform: rotate(21deg) translateY(-6px); }
-}
-@keyframes float5 {
-  0%, 100% { transform: rotate(7deg) scale(0.82) translateY(0); }
-  50%       { transform: rotate(7deg) scale(0.82) translateY(-8px); }
+.btn-rules-icon {
+  font-size: 0.7rem;
+  opacity: 0.75;
 }
 
 /* ══════════════════════════════════════
@@ -299,7 +369,7 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
 ══════════════════════════════════════ */
 .lobby-header {
   text-align: center;
-  padding: 1.75rem 0 0.25rem;
+  padding: 0.75rem 0 0.25rem;
 }
 
 .lobby-title {
@@ -375,7 +445,6 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
   overflow: hidden;
 }
 
-/* 금색 상단 강조선 */
 .glass-panel::before {
   content: '';
   position: absolute;
@@ -443,6 +512,7 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
   font-size: 0.875rem;
   outline: none;
   transition: border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
+  box-sizing: border-box;
 }
 
 .wood-input:focus {
@@ -467,8 +537,6 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
 /* ══════════════════════════════════════
    버튼들
 ══════════════════════════════════════ */
-
-/* 방 만들기 / 취소 */
 .btn-create {
   padding: 0.45rem 1.1rem;
   font-size: 0.82rem;
@@ -511,7 +579,6 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
   transform: none;
 }
 
-/* 방 만들기 폼 내부 '만들기' 버튼 */
 .btn-make {
   flex-shrink: 0;
   padding: 0.6rem 1.1rem;
@@ -574,12 +641,6 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
   50%       { opacity: 1; }
 }
 
-.empty-icon {
-  font-size: 2.2rem;
-  opacity: 0.35;
-  line-height: 1;
-}
-
 .empty-text {
   color: rgba(255, 255, 255, 0.38);
   font-size: 0.875rem;
@@ -599,15 +660,18 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 0.75rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212, 175, 55, 0.3) transparent;
+  -webkit-overflow-scrolling: touch;
 }
 
-@media (max-width: 380px) {
-  .room-grid {
-    grid-template-columns: 1fr;
-  }
+.room-grid::-webkit-scrollbar        { width: 3px; }
+.room-grid::-webkit-scrollbar-track  { background: transparent; }
+.room-grid::-webkit-scrollbar-thumb  {
+  background: rgba(212, 175, 55, 0.35);
+  border-radius: 2px;
 }
 
-/* ── 방 카드 ── */
 .room-card {
   position: relative;
   display: flex;
@@ -628,7 +692,6 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
   overflow: hidden;
 }
 
-/* 상단 금색 강조선 */
 .room-card::before {
   content: '';
   position: absolute;
@@ -710,7 +773,6 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
   font-size: 0.72rem;
 }
 
-/* 입장 버튼 */
 .room-join-btn {
   margin-top: 0.25rem;
   width: 100%;
@@ -770,38 +832,180 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
 }
 
 /* ══════════════════════════════════════
-   방 목록 스크롤바 (넘칠 때만 표시)
+   게임 규칙 모달
 ══════════════════════════════════════ */
-.room-grid {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(212, 175, 55, 0.3) transparent;
-  -webkit-overflow-scrolling: touch;
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
 }
-.room-grid::-webkit-scrollbar        { width: 3px; }
-.room-grid::-webkit-scrollbar-track  { background: transparent; }
-.room-grid::-webkit-scrollbar-thumb  {
-  background: rgba(212, 175, 55, 0.35);
-  border-radius: 2px;
+
+.modal-box {
+  width: 100%;
+  max-width: 32rem;
+  max-height: 75vh;
+  background: linear-gradient(160deg, #1e0c0c 0%, #130808 100%);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 1.25rem 1.25rem 0 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow:
+    0 -20px 60px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(212, 175, 55, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.12);
+  flex-shrink: 0;
+}
+
+.modal-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, #f9eea0 0%, #d4af37 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.modal-close {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.35);
+  color: rgba(212, 175, 55, 0.9);
+}
+
+.modal-body {
+  padding: 1.25rem 1.5rem 1.75rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.rules-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.rules-section-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(212, 175, 55, 0.65);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rules-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rules-list li {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  padding-left: 1rem;
+  position: relative;
+}
+
+.rules-list li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  color: rgba(212, 175, 55, 0.6);
+}
+
+.rules-list--rank li {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding-left: 0;
+}
+
+.rules-list--rank li::before {
+  display: none;
+}
+
+.rank-name {
+  flex-shrink: 0;
+  font-weight: 700;
+  color: rgba(212, 175, 55, 0.9);
+  font-size: 0.8rem;
+  min-width: 4rem;
+  letter-spacing: 0.04em;
+}
+
+/* 모달 트랜지션 (하단 슬라이드 업) */
+.modal-fade-enter-active {
+  transition: opacity 0.28s ease;
+}
+.modal-fade-leave-active {
+  transition: opacity 0.22s ease;
+}
+.modal-fade-enter-active .modal-box {
+  transition: transform 0.32s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.modal-fade-leave-active .modal-box {
+  transition: transform 0.24s cubic-bezier(0.55, 0, 1, 0.45);
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-from .modal-box,
+.modal-fade-leave-to .modal-box {
+  transform: translateY(100%);
 }
 
 /* ══════════════════════════════════════
-   모바일 세로 화면 핏-투-스크린 최적화
-   ── 가로폭 기준: 768px 이하
+   모바일 세로 핏-투-스크린 최적화
+   ── 가로폭 768px 이하
 ══════════════════════════════════════ */
 @media (max-width: 768px) {
-  .lobby-wrapper {
-    padding: 0 0.25rem;
-  }
-
   .lobby-content {
     gap: 1rem;
   }
 
   .lobby-header {
-    padding: 1rem 0 0.125rem;
+    padding: 0.5rem 0 0.125rem;
   }
 
-  /* clamp(최소, 뷰포트 기준, 최대) 로 화면 폭에 따라 유동 축소 */
   .lobby-title {
     font-size: clamp(3rem, 13vw, 4.5rem);
     margin-bottom: 0.4rem;
@@ -825,15 +1029,56 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
 }
 
 /* ══════════════════════════════════════
+   ── 아이폰 17 프로 세로 모드
+      (폭 393px~430px, 높이 852px~956px)
+══════════════════════════════════════ */
+@media (max-width: 430px) {
+  .hwatu-row {
+    gap: 0.4rem;
+    padding: 1.25rem 1rem 0.75rem;
+  }
+
+  .hwatu-card {
+    width: 2.9rem;
+    height: 4.35rem;
+  }
+
+  .lobby-content {
+    gap: 0.875rem;
+    padding: 0 1rem;
+  }
+
+  .rules-footer {
+    padding: 0.875rem 1rem;
+    padding-bottom: max(1.25rem, env(safe-area-inset-bottom, 1.25rem));
+  }
+
+  .room-grid {
+    grid-template-columns: 1fr;
+    max-height: 32vh;
+    overflow-y: auto;
+  }
+}
+
+/* ══════════════════════════════════════
    ── 세로 높이 기준: 800px 이하
 ══════════════════════════════════════ */
 @media (max-height: 800px) {
+  .hwatu-row {
+    padding: 1rem 1.25rem 0.5rem;
+  }
+
+  .hwatu-card {
+    width: 2.8rem;
+    height: 4.2rem;
+  }
+
   .lobby-content {
     gap: 0.875rem;
   }
 
   .lobby-header {
-    padding: 0.75rem 0 0.1rem;
+    padding: 0.25rem 0 0;
   }
 
   .lobby-title {
@@ -857,7 +1102,6 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
     padding: 1.25rem 1rem;
   }
 
-  /* 방 목록: 남은 세로 공간의 30%까지만 차지하고 내부 스크롤 */
   .room-grid {
     max-height: 30vh;
     overflow-y: auto;
@@ -868,12 +1112,21 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
    ── 세로 높이 기준: 700px 이하
 ══════════════════════════════════════ */
 @media (max-height: 700px) {
+  .hwatu-row {
+    padding: 0.75rem 1.25rem 0.375rem;
+  }
+
+  .hwatu-card {
+    width: 2.5rem;
+    height: 3.75rem;
+  }
+
   .lobby-content {
     gap: 0.625rem;
   }
 
   .lobby-header {
-    padding: 0.5rem 0 0;
+    padding: 0.125rem 0 0;
   }
 
   .lobby-title {
@@ -914,19 +1167,26 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
     gap: 0.625rem;
   }
 
-  /* 장식 카드 소형화 */
-  .decor-card {
-    width: 2.4rem;
-    height: 3.6rem;
-    opacity: 0.35;
+  .rules-footer {
+    padding: 0.5rem 1.25rem;
+    padding-bottom: max(0.875rem, env(safe-area-inset-bottom, 0.875rem));
+  }
+
+  .btn-rules {
+    padding: 0.5rem 1.75rem;
+    font-size: 0.8rem;
   }
 }
 
 /* ══════════════════════════════════════
-   ── 세로 높이 기준: 600px 이하
+   ── 세로 높이 600px 이하
       (아이폰 SE 가로 모드 / 초소형 기기)
 ══════════════════════════════════════ */
 @media (max-height: 600px) {
+  .hwatu-row {
+    display: none; /* 세로 공간 매우 부족 시 화투패 행 숨김 */
+  }
+
   .lobby-content {
     gap: 0.5rem;
   }
@@ -946,7 +1206,6 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
     margin-bottom: 0.25rem;
   }
 
-  /* 황금 구분선은 공간 절약을 위해 숨김 */
   .gold-divider {
     display: none;
   }
@@ -997,9 +1256,14 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
     margin-top: 0.1rem;
   }
 
-  /* 장식 카드는 공간 절약을 위해 숨김 */
-  .decor-cards {
-    display: none;
+  .rules-footer {
+    padding: 0.375rem 1.25rem;
+    padding-bottom: max(0.625rem, env(safe-area-inset-bottom, 0.625rem));
+  }
+
+  .btn-rules {
+    padding: 0.4rem 1.25rem;
+    font-size: 0.75rem;
   }
 }
 </style>

@@ -20,7 +20,7 @@ function handleLeave() {
 
 <template>
   <!-- 로비: 중앙 정렬 (타이틀은 Lobby.vue 내부에 포함) -->
-  <div v-if="!joined" class="min-h-screen flex flex-col items-center justify-center py-8 px-4">
+  <div v-if="!joined" class="min-h-screen flex flex-col items-center justify-center py-8 px-4 overflow-x-hidden">
     <Lobby @join="handleJoin" />
   </div>
 

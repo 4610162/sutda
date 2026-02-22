@@ -751,4 +751,36 @@ watch(
   opacity: 0;
   transform: translateY(8px) scale(0.8);
 }
+
+/* ===== 아이폰 17 프로 세로 모드 핏-투-스크린 (430px 이하) ===== */
+@media (max-width: 430px) {
+  /* 상대 플레이어 아크: 좌우에 여백을 추가해 카드가 화면 끝에 붙지 않게 */
+  .stadium-arc {
+    padding: 0.25rem 0.875rem 0; /* 기존 0.25rem → 0.875rem 좌우 */
+    column-gap: 0.375rem;
+  }
+
+  /* 좌우 슬롯을 각 컬럼 중앙으로 정렬 → 화면 가운데로 모아줌 */
+  .arc-slot--left {
+    justify-content: center;
+    padding-top: 1.5rem; /* 부채꼴 효과 유지하되 조금 줄임 */
+  }
+  .arc-slot--right {
+    justify-content: center;
+    padding-top: 1.5rem;
+  }
+
+  /* 판돈 바: 좁은 화면에서 최소 폭 조정 */
+  .pot-bar {
+    min-width: 0;
+    width: 90%;
+    max-width: 280px;
+    padding: 0.4rem 1rem;
+  }
+
+  /* 베팅 버튼: 더 촘촘하게 */
+  .bet-buttons {
+    gap: 0.25rem;
+  }
+}
 </style>

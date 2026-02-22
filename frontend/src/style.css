@@ -218,9 +218,11 @@ button, input, [role="button"] {
 html {
   min-height: 100%;
   min-height: -webkit-fill-available;  /* iOS Safari 뷰포트 높이 보정 */
+  overflow-x: hidden;                  /* 가로 스크롤 원천 차단 */
 }
 
 body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
+  overflow-x: hidden;                  /* 가로 스크롤 원천 차단 */
 }
