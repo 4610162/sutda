@@ -270,34 +270,35 @@ const visibleAction = computed(() => props.player.lastAction);
 }
 
 /* ===== 상대 카드 크기: 내 카드보다 소형 (슬롯 내 fit) ===== */
-/* mobile: 48×72px  / sm: 67×101px  (기존 대비 1.2배) */
+/* SVG 원본 비율 103.2×168.2 (≈ 1:1.630) 에 맞게 높이 산출
+   mobile: 3rem × 4.89rem  / sm: 4.2rem × 6.85rem             */
 .player-slot :deep(.card-flip-container) {
   width: 3rem;
-  height: 4.5rem;
+  height: 4.89rem;
 }
 .player-slot :deep(.sutda-card) {
   width: 3rem;
-  height: 4.5rem;
+  height: 4.89rem;
   border-radius: 0.375rem;
 }
 .player-slot :deep(.sutda-card-back) {
   width: 3rem;
-  height: 4.5rem;
+  height: 4.89rem;
   border-radius: 0.375rem;
 }
 @media (min-width: 640px) {
   .player-slot :deep(.card-flip-container) {
     width: 4.2rem;
-    height: 6.3rem;
+    height: 6.85rem;
   }
   .player-slot :deep(.sutda-card) {
     width: 4.2rem;
-    height: 6.3rem;
+    height: 6.85rem;
     border-radius: 0.5rem;
   }
   .player-slot :deep(.sutda-card-back) {
     width: 4.2rem;
-    height: 6.3rem;
+    height: 6.85rem;
     border-radius: 0.5rem;
   }
 }

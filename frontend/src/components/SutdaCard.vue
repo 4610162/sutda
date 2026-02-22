@@ -49,7 +49,7 @@ const isKwang = computed(() => props.card?.isKwang ?? false);
           v-if="imgSrc && !imgError"
           :src="imgSrc"
           :alt="`${card.month}월 카드`"
-          class="w-full h-full object-contain"
+          class="w-full h-full object-cover"
           loading="lazy"
           @error="onImgError"
         />

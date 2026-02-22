@@ -360,7 +360,7 @@ watch(
             <p v-else-if="!myPlayer?.folded" class="text-gray-400 text-[10px] sm:text-xs animate-pulse text-center">
               상대방의 턴을 기다리는 중...
             </p>
-            <p v-else class="text-gray-500 text-[10px] sm:text-xs text-center">다이 처리됨</p>
+            <p v-else class="text-gray-500 text-[10px] sm:text-xs text-center">다이</p>
           </template>
         </div>
 
@@ -602,7 +602,7 @@ watch(
 .pot-section {
   display: flex;
   justify-content: center;
-  padding: 0.25rem 1rem 0.5rem;
+  padding: 0.125rem 1rem 0.25rem;
   flex-shrink: 0;
 }
 
@@ -652,7 +652,7 @@ watch(
   flex-direction: column;
   align-items: center;
   gap: 0.375rem;
-  padding: 0 0.5rem;
+  padding: 0.125rem 0.5rem 0.75rem;
   flex-shrink: 0;
   position: relative;
   z-index: 1;
@@ -673,14 +673,21 @@ watch(
 
 /* ===== ⑤ 베팅 영역 ===== */
 .bet-area {
-  min-height: 44px;
+  /* 버튼 min-height(42px) + 상하 padding(4px+6px) = 52px 고정 → 레이아웃 시프트 방지 */
+  min-height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.5rem 0.375rem;
   flex-shrink: 0;
   position: relative;
   z-index: 2;
+}
+@media (min-width: 640px) {
+  .bet-area {
+    /* sm: 버튼 min-height(44px) + 상하 padding(4px+6px) = 54px */
+    min-height: 54px;
+  }
 }
 
 .bet-buttons {
@@ -778,9 +785,31 @@ watch(
     padding: 0.4rem 1rem;
   }
 
+  /* 판돈 섹션: 패딩 최소화 */
+  .pot-section {
+    padding: 0.125rem 0.875rem 0.125rem;
+  }
+
+  /* 내 카드 영역: 하단 여백 유지하되 상단 줄임 */
+  .my-cards-area {
+    padding: 0 0.5rem 0.625rem;
+  }
+
+  /* 베팅 영역: 버튼 min-height(36px) + 상하 padding(2px+4px) = 42px 고정 */
+  .bet-area {
+    min-height: 42px;
+    padding: 0.125rem 0.5rem 0.25rem;
+  }
+
   /* 베팅 버튼: 더 촘촘하게 */
   .bet-buttons {
     gap: 0.25rem;
+  }
+
+  .btn-bet-mobile {
+    min-height: 36px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.75rem;
   }
 }
 </style>

@@ -71,8 +71,11 @@
 @layer components {
 
   /* ─── 카드 앞면 ─── */
+  /* 높이: SVG 원본 비율 103.2×168.2(≈1:1.630) 기준
+     mobile 4.2rem → 4.2×1.630=6.85rem
+     sm    6rem(w-24) → 6×1.630=9.78rem               */
   .sutda-card {
-    @apply w-[4.2rem] h-[6.3rem] sm:w-24 sm:h-[9.6rem]
+    @apply w-[4.2rem] h-[6.85rem] sm:w-24 sm:h-[9.78rem]
            rounded-lg sm:rounded-xl
            bg-white overflow-hidden
            select-none;
@@ -85,7 +88,7 @@
 
   /* ─── 카드 뒷면 (프리미엄 패턴) ─── */
   .sutda-card-back {
-    @apply w-[4.2rem] h-[6.3rem] sm:w-24 sm:h-[9.6rem]
+    @apply w-[4.2rem] h-[6.85rem] sm:w-24 sm:h-[9.78rem]
            rounded-lg sm:rounded-xl
            select-none relative overflow-hidden;
     border: 2px solid #d4af37;
