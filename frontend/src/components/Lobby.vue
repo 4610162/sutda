@@ -203,7 +203,7 @@ function canJoin(room: { phase: string; playerCount: number }): boolean {
             <div class="rules-section">
               <h3 class="rules-section-title">기본 규칙</h3>
               <ul class="rules-list">
-                <li>2~4명이 참여하여 진행합니다.</li>
+                <li>2~7명이 참여하여 진행합니다.</li>
                 <li>각 플레이어는 화투패 2장을 받습니다.</li>
                 <li>패의 합산 끝자리가 높을수록 유리합니다.</li>
                 <li>9가 최고이며, 0(망통)이 최하입니다.</li>

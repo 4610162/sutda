@@ -10,6 +10,7 @@ const props = defineProps<{
   isMe?: boolean;
   isWinner?: boolean;
   position?: "left" | "right" | "top";
+  compact?: boolean;
 }>();
 
 const visibleAction = computed(() => props.player.lastAction);
@@ -23,6 +24,7 @@ const visibleAction = computed(() => props.player.lastAction);
         'is-current-turn': isCurrentTurn && !player.folded,
         'is-winner': isWinner && phase === 'result' && !player.folded,
         'is-folded': player.folded,
+        'is-compact': compact,
       },
       position === 'left' || position === 'right' ? 'player-slot--side' : '',
     ]"
@@ -93,10 +95,10 @@ const visibleAction = computed(() => props.player.lastAction);
   flex-direction: column;
   align-items: center;
   gap: 0;
-  padding: 0.4rem 0.4rem 0.35rem;
+  padding: 0.35rem 0.35rem 0.35rem;
   border-radius: 0.75rem;
-  min-width: 110px;
-  width: 110px;
+  min-width: 114px;
+  width: 114px;
   position: relative;
   isolation: isolate;
   overflow: visible;
@@ -109,22 +111,34 @@ const visibleAction = computed(() => props.player.lastAction);
 }
 @media (min-width: 640px) {
   .player-slot {
-    min-width: 152px;
-    width: 152px;
-    padding: 0.625rem 0.625rem 0.45rem;
+    min-width: 162px;
+    width: 162px;
+    padding: 0.6rem 0.6rem 0.5rem;
     border-radius: 0.875rem;
   }
 }
 
-/* 사이드 슬롯 (좌/우) */
+/* 사이드 슬롯 (좌/우): 1fr 컬럼에 맞게 소폭 축소 */
 .player-slot--side {
-  width: 104px;
-  min-width: 104px;
+  width: 111px;
+  min-width: 111px;
 }
 @media (min-width: 640px) {
   .player-slot--side {
-    width: 148px;
-    min-width: 148px;
+    width: 154px;
+    min-width: 154px;
+  }
+}
+
+/* 컴팩트 슬롯 (n>=5 상대 배치 시) */
+.player-slot.is-compact {
+  width: 103px;
+  min-width: 103px;
+}
+@media (min-width: 640px) {
+  .player-slot.is-compact {
+    width: 142px;
+    min-width: 142px;
   }
 }
 
@@ -161,9 +175,9 @@ const visibleAction = computed(() => props.player.lastAction);
 }
 
 .player-name {
-  font-size: 0.6875rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  max-width: 76px;
+  max-width: 79px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -172,8 +186,8 @@ const visibleAction = computed(() => props.player.lastAction);
 }
 @media (min-width: 640px) {
   .player-name {
-    font-size: 0.75rem;
-    max-width: 104px;
+    font-size: 0.875rem;
+    max-width: 109px;
   }
 }
 
@@ -183,15 +197,15 @@ const visibleAction = computed(() => props.player.lastAction);
 
 /* ===== 뱃지 ===== */
 .badge {
-  font-size: 0.5625rem;
+  font-size: 0.65rem;
   font-weight: 700;
-  padding: 0.1rem 0.35rem;
+  padding: 0.1rem 0.4rem;
   border-radius: 9999px;
   line-height: 1;
   flex-shrink: 0;
 }
 @media (min-width: 640px) {
-  .badge { font-size: 0.625rem; }
+  .badge { font-size: 0.72rem; }
 }
 
 .badge--bot  { background: rgba(139, 92, 246, 0.75); color: #fff; }
@@ -201,7 +215,7 @@ const visibleAction = computed(() => props.player.lastAction);
 /* ===== 액션 배지 ===== */
 .action-badge {
   display: inline-block;
-  font-size: 0.5625rem;
+  font-size: 0.65rem;
   font-weight: 700;
   padding: 0.1rem 0.5rem;
   border-radius: 9999px;
@@ -211,7 +225,7 @@ const visibleAction = computed(() => props.player.lastAction);
   margin-bottom: 0.15rem;
 }
 @media (min-width: 640px) {
-  .action-badge { font-size: 0.625rem; }
+  .action-badge { font-size: 0.72rem; }
 }
 
 /* ===== 카드 영역 ===== */
@@ -228,14 +242,14 @@ const visibleAction = computed(() => props.player.lastAction);
 
 /* ===== 족보 배지 ===== */
 .hand-badge {
-  font-size: 0.5625rem;
+  font-size: 0.65rem;
   font-weight: 700;
   padding: 0.1rem 0.5rem;
   border-radius: 9999px;
   margin-top: 0.15rem;
 }
 @media (min-width: 640px) {
-  .hand-badge { font-size: 0.625rem; }
+  .hand-badge { font-size: 0.72rem; }
 }
 
 .hand-badge--active { background: rgba(212, 168, 67, 0.18); color: #d4a843; }
@@ -250,56 +264,85 @@ const visibleAction = computed(() => props.player.lastAction);
 }
 
 .balance-text {
-  font-size: 0.5625rem;
+  font-size: 0.65rem;
   color: rgba(134, 239, 172, 0.75);
 }
 .bet-text {
-  font-size: 0.5625rem;
+  font-size: 0.65rem;
   color: rgba(253, 224, 71, 0.85);
 }
 @media (min-width: 640px) {
-  .balance-text, .bet-text { font-size: 0.625rem; }
+  .balance-text, .bet-text { font-size: 0.72rem; }
 }
 
 /* ===== 준비완료 ===== */
 .ready-text {
-  font-size: 0.5625rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: #4ade80;
   margin-top: 0.1rem;
 }
 
-/* ===== 상대 카드 크기: 내 카드보다 소형 (슬롯 내 fit) ===== */
-/* SVG 원본 비율 103.2×168.2 (≈ 1:1.630) 에 맞게 높이 산출
-   mobile: 3rem × 4.89rem  / sm: 4.2rem × 6.85rem             */
+/* ===== 상대 카드 크기: 표준 / 컴팩트 ===== */
+/* SVG 원본 비율 103.2×168.2 (≈ 1:1.630) 에 맞게 높이 산출 (+15%)
+   표준  mobile: 2.875rem × 4.69rem  / sm: 4.14rem × 6.75rem
+   컴팩트 mobile: 2.53rem × 4.12rem  / sm: 3.57rem × 5.82rem   */
 .player-slot :deep(.card-flip-container) {
-  width: 3rem;
-  height: 4.89rem;
+  width: 3.16rem;
+  height: 5.16rem;
 }
 .player-slot :deep(.sutda-card) {
-  width: 3rem;
-  height: 4.89rem;
-  border-radius: 0.375rem;
+  width: 3.16rem;
+  height: 5.16rem;
+  border-radius: 0.3rem;
 }
 .player-slot :deep(.sutda-card-back) {
-  width: 3rem;
-  height: 4.89rem;
-  border-radius: 0.375rem;
+  width: 3.16rem;
+  height: 5.16rem;
+  border-radius: 0.3rem;
 }
 @media (min-width: 640px) {
   .player-slot :deep(.card-flip-container) {
-    width: 4.2rem;
-    height: 6.85rem;
+    width: 4.55rem;
+    height: 7.43rem;
   }
   .player-slot :deep(.sutda-card) {
-    width: 4.2rem;
-    height: 6.85rem;
-    border-radius: 0.5rem;
+    width: 4.55rem;
+    height: 7.43rem;
+    border-radius: 0.45rem;
   }
   .player-slot :deep(.sutda-card-back) {
-    width: 4.2rem;
-    height: 6.85rem;
-    border-radius: 0.5rem;
+    width: 4.55rem;
+    height: 7.43rem;
+    border-radius: 0.45rem;
+  }
+}
+
+/* 컴팩트 카드 크기 (is-compact 슬롯) */
+.player-slot.is-compact :deep(.card-flip-container),
+.player-slot.is-compact :deep(.sutda-card),
+.player-slot.is-compact :deep(.sutda-card-back) {
+  width: 2.78rem;
+  height: 4.53rem;
+  border-radius: 0.3rem;
+}
+@media (min-width: 640px) {
+  .player-slot.is-compact :deep(.card-flip-container),
+  .player-slot.is-compact :deep(.sutda-card),
+  .player-slot.is-compact :deep(.sutda-card-back) {
+    width: 3.93rem;
+    height: 6.40rem;
+    border-radius: 0.4rem;
+  }
+}
+
+/* 컴팩트 이름 최대 폭 조정 */
+.player-slot.is-compact .player-name {
+  max-width: 66px;
+}
+@media (min-width: 640px) {
+  .player-slot.is-compact .player-name {
+    max-width: 91px;
   }
 }
 

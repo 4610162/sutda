@@ -5,7 +5,7 @@ const HANDS = [
   { tier: "광땡",   name: "38광땡",      desc: "3월 광 + 8월 광",                  color: "text-yellow-300" },
   { tier: "광땡",   name: "18광땡",      desc: "1월 광 + 8월 광",                  color: "text-yellow-300" },
   { tier: "광땡",   name: "13광땡",      desc: "1월 광 + 3월 광",                  color: "text-yellow-300" },
-  { tier: "땡잡이", name: "땡잡이",      desc: "3 + 7 · 광땡 제외 모든 땡을 이김", color: "text-red-300"    },
+  { tier: "땡잡이", name: "땡잡이",      desc: "3 + 7 · 땡에만 승리(장땡 제외)", color: "text-red-300"    },
   { tier: "땡",    name: "장땡",        desc: "10 + 10 (동일 월 최강)",            color: "text-orange-300" },
   { tier: "땡",    name: "9땡",         desc: "9 + 9",                            color: "text-orange-300" },
   { tier: "땡",    name: "8땡",         desc: "8 + 8",                            color: "text-orange-300" },
@@ -16,25 +16,25 @@ const HANDS = [
   { tier: "땡",    name: "3땡",         desc: "3 + 3",                            color: "text-orange-300" },
   { tier: "땡",    name: "2땡",         desc: "2 + 2",                            color: "text-orange-300" },
   { tier: "땡",    name: "1땡",         desc: "1 + 1",                            color: "text-orange-300" },
-  { tier: "암행어사", name: "암행어사",  desc: "4 + 7 · 모든 특수패를 이김, 땡에 짐", color: "text-purple-300" },
+  { tier: "암행어사", name: "암행어사",  desc: "4 + 7 · 광땡에만 승리(38광땡 제외)", color: "text-purple-300" },
   { tier: "특수",   name: "알리",       desc: "1 + 2",                            color: "text-blue-300"   },
   { tier: "특수",   name: "독사",       desc: "1 + 4",                            color: "text-blue-300"   },
   { tier: "특수",   name: "구삥",       desc: "1 + 9",                            color: "text-blue-300"   },
   { tier: "특수",   name: "장삥",       desc: "1 + 10",                           color: "text-blue-300"   },
   { tier: "특수",   name: "장사",       desc: "4 + 10",                           color: "text-blue-300"   },
   { tier: "특수",   name: "세륙",       desc: "4 + 6",                            color: "text-blue-300"   },
-  { tier: "끗",    name: "9끗",         desc: "합산 mod 10 = 9",                  color: "text-gray-300"   },
-  { tier: "끗",    name: "8끗",         desc: "합산 mod 10 = 8",                  color: "text-gray-300"   },
-  { tier: "끗",    name: "7끗",         desc: "합산 mod 10 = 7",                  color: "text-gray-300"   },
-  { tier: "끗",    name: "6끗",         desc: "합산 mod 10 = 6",                  color: "text-gray-300"   },
-  { tier: "끗",    name: "5끗",         desc: "합산 mod 10 = 5",                  color: "text-gray-300"   },
-  { tier: "끗",    name: "4끗",         desc: "합산 mod 10 = 4",                  color: "text-gray-300"   },
-  { tier: "끗",    name: "3끗",         desc: "합산 mod 10 = 3",                  color: "text-gray-300"   },
-  { tier: "끗",    name: "2끗",         desc: "합산 mod 10 = 2",                  color: "text-gray-300"   },
-  { tier: "끗",    name: "1끗",         desc: "합산 mod 10 = 1",                  color: "text-gray-300"   },
-  { tier: "꼴찌",  name: "망통",        desc: "합산 mod 10 = 0 (광땡 아닐 때)",   color: "text-red-400"    },
-  { tier: "구사",  name: "구사",        desc: "9 + 4 · 무승부 → 판돈 이월 재경기", color: "text-cyan-300"  },
-  { tier: "구사",  name: "멍텅구리 구사", desc: "양쪽 모두 구사 → 배판 (판돈 2배 재경기)", color: "text-cyan-400" },
+  { tier: "끗",    name: "9끗",         desc: "월 합산 마지막 자리 9",                  color: "text-gray-300"   },
+  { tier: "끗",    name: "8끗",         desc: "합산 8",                  color: "text-gray-300"   },
+  { tier: "끗",    name: "7끗",         desc: "합산 7",                  color: "text-gray-300"   },
+  { tier: "끗",    name: "6끗",         desc: "합산 6",                  color: "text-gray-300"   },
+  { tier: "끗",    name: "5끗",         desc: "합산 5",                  color: "text-gray-300"   },
+  { tier: "끗",    name: "4끗",         desc: "합산 4",                  color: "text-gray-300"   },
+  { tier: "끗",    name: "3끗",         desc: "합산 3",                  color: "text-gray-300"   },
+  { tier: "끗",    name: "2끗",         desc: "합산 2",                  color: "text-gray-300"   },
+  { tier: "끗",    name: "1끗",         desc: "합산 1",                  color: "text-gray-300"   },
+  { tier: "꼴찌",  name: "망통",        desc: "합산 0",   color: "text-red-400"    },
+  { tier: "구사",  name: "구사",        desc: "9 + 4 · 땡 미만 무승부 → 판돈 이월 재경기", color: "text-cyan-300"  },
+  { tier: "구사",  name: "멍텅구리 구사", desc: "장땡 미만 무승무 ", color: "text-cyan-400" },
 ] as const;
 
 const TIERS = ["광땡", "땡잡이", "땡", "암행어사", "특수", "끗", "꼴찌", "구사"] as const;
@@ -121,10 +121,10 @@ function handsForTier(tier: Tier) {
             </div>
 
             <!-- 추가 규칙 -->
-            <div class="bg-white/5 border border-white/10 rounded-xl p-4 mt-2">
+            <!-- <div class="bg-white/5 border border-white/10 rounded-xl p-4 mt-2">
               <p class="text-[11px] text-gray-400 font-semibold mb-2 uppercase tracking-wider">추가 규칙</p>
               <ul class="text-xs text-gray-500 space-y-1.5 list-none">
-                <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>광땡은 해당 월 카드가 모두 <span class="text-yellow-300">光(Hikari)</span>일 때만 성립</li>
+                <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>광땡은 해당 월 패가 모두 <span class="text-yellow-300">光(광)</span>일 때만 성립</li>
                 <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>땡은 같은 월 두 장 (1~10월, 장땡 = 10땡)</li>
                 <li class="flex gap-2"><span class="text-gray-700 select-none">·</span><span class="text-red-300">땡잡이(3+7)</span>는 광땡을 제외한 모든 땡을 이김</li>
                 <li class="flex gap-2"><span class="text-gray-700 select-none">·</span><span class="text-purple-300">암행어사(4+7)</span>는 모든 특수패를 이기지만 땡에는 짐</li>
@@ -135,7 +135,7 @@ function handsForTier(tier: Tier) {
                 <li class="flex gap-2"><span class="text-gray-700 select-none">·</span><span class="text-cyan-400">멍텅구리 구사</span>는 양쪽 모두 구사일 때 → 배판(판돈 2배) 재경기</li>
                 <li class="flex gap-2"><span class="text-gray-700 select-none">·</span>콜(Call)은 상대 베팅에 맞추고 즉시 족보 비교</li>
               </ul>
-            </div>
+            </div> -->
           </div>
         </div>
       </div>

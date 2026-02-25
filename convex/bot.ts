@@ -417,6 +417,8 @@ export const checkBotTurn = internalMutation({
         if (!p.isBot || p.ready) continue;
         // 재경기 모드면 해당 봇만
         if (isRematchMode && !rematchIds.includes(p.playerId)) continue;
+        // 비재경기 모드에서 잔액 부족 봇은 스킵 (다음 라운드 참여 불가)
+        if (!isRematchMode && p.balance < BASE_BET) continue;
         const delay = 1000 + Math.floor(Math.random() * 2000);
         await ctx.scheduler.runAfter(delay, internal.bot.botAutoReady, {
           roomCode: room.roomCode,
@@ -449,7 +451,7 @@ export const addBot = mutation({
       .query("players")
       .withIndex("by_room", (q) => q.eq("roomId", room._id))
       .collect();
-    if (players.length >= 4) throw new Error("방이 가득 찼습니다 (최대 4명).");
+    if (players.length >= 7) throw new Error("방이 가득 찼습니다 (최대 7명).");
 
     const botCount = players.filter((p) => p.isBot).length;
     const botId = `bot_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;

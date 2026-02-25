@@ -132,7 +132,7 @@ export const joinRoom = mutation({
     }
 
     if (room.phase !== "waiting") throw new Error("게임이 이미 진행 중입니다.");
-    if (players.length >= 4) throw new Error("방이 가득 찼습니다 (최대 4명).");
+    if (players.length >= 7) throw new Error("방이 가득 찼습니다 (최대 7명).");
 
     if (players.length === 0) await ctx.db.patch(room._id, { hostId: playerId });
 

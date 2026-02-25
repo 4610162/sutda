@@ -73,6 +73,47 @@ async function handleLeave() {
 // 내 족보 이름 (playing 중 표시)
 const myHandName = computed(() => myPlayer.value?.hand?.name ?? null);
 
+// ── U자형 상대 플레이어 배치 (최대 6명) ──────────
+// n=1: 상단 중앙 1명
+// n=2: 상단 좌우 2명
+// n=3: 상단 3명
+// n=4: 좌1 + 상단2 + 우1
+// n=5: 좌1 + 상단3 + 우1
+// n=6: 좌2 + 상단2 + 우2
+const nOthers = computed(() => otherPlayers.value.length);
+
+/** 상단 행 (n<=3: 전원, n=4,5: 가운데, n=6: 중앙 2명) */
+const topOpponents = computed(() => {
+  const n = nOthers.value;
+  const o = otherPlayers.value;
+  if (n <= 3) return o;
+  if (n === 4) return o.slice(1, 3);
+  if (n === 5) return o.slice(1, 4);
+  return o.slice(2, 4); // n=6
+});
+
+/** 좌측 컬럼 (n<=3: 없음, n=4,5: 1명, n=6: 2명) */
+const leftOpponents = computed(() => {
+  const n = nOthers.value;
+  const o = otherPlayers.value;
+  if (n <= 3) return [];
+  if (n <= 5) return [o[0]];
+  return o.slice(0, 2); // n=6
+});
+
+/** 우측 컬럼 (n<=3: 없음, n=4: 1명, n=5: 1명, n=6: 2명) */
+const rightOpponents = computed(() => {
+  const n = nOthers.value;
+  const o = otherPlayers.value;
+  if (n <= 3) return [];
+  if (n === 4) return [o[3]];
+  if (n === 5) return [o[4]];
+  return o.slice(4, 6); // n=6
+});
+
+/** 상단 행 3명 이상일 때 컴팩트 (n>=5) */
+const isCompact = computed(() => nOthers.value >= 5);
+
 // ===== 판돈 Count-up 애니메이션 =====
 const displayPot = ref(0);
 const coinBounce = ref(false);
@@ -84,7 +125,6 @@ watch(
     const end = newVal;
     if (start === end) return;
 
-    // 판돈 증가 시 금화 바운스 트리거
     if (end > start) {
       coinBounce.value = true;
       setTimeout(() => { coinBounce.value = false; }, 750);
@@ -100,7 +140,6 @@ watch(
         displayPot.value = end;
         clearInterval(timer);
       } else {
-        // easeOut 적용
         const progress = step / steps;
         const eased = 1 - Math.pow(1 - progress, 2);
         displayPot.value = Math.round(start + diff * eased);
@@ -163,142 +202,132 @@ watch(
         class="game-table bg-gradient-to-b from-sutda-green/90 to-emerald-900/90
                border-2 border-sutda-gold/40 rounded-2xl shadow-2xl flex-1 min-h-0"
       >
-        <!-- ① 부채꼴 상대 플레이어 아크 (상단 외곽) -->
-        <div class="stadium-arc">
-          <!-- 좌측 상단 슬롯 (3~4인 게임용) -->
-          <div class="arc-slot arc-slot--left">
+        <!-- ① 상단 상대 플레이어 행 -->
+        <div class="opp-top-row">
+          <template v-if="topOpponents.length">
             <PlayerSlot
-              v-if="otherPlayers.length >= 2 && otherPlayers[0]"
-              :player="otherPlayers[0]"
-              :is-current-turn="currentTurnId === otherPlayers[0].id"
+              v-for="p in topOpponents"
+              :key="p.id"
+              :player="p"
+              :compact="isCompact"
+              :is-current-turn="currentTurnId === p.id"
               :phase="phase"
-              :is-winner="phase === 'result' && otherPlayers[0].id === winnerId"
+              :is-winner="phase === 'result' && p.id === winnerId"
+              position="top"
+            />
+          </template>
+          <!-- 빈 슬롯 플레이스홀더 (상대 없을 때) -->
+          <div v-else class="opacity-20 flex flex-col items-center pt-2">
+            <div class="w-8 h-12 sm:w-10 sm:h-16 bg-gray-700/50 rounded-lg border border-dashed border-gray-600/50"></div>
+            <div class="text-[9px] text-gray-600 mt-1">대기 중</div>
+          </div>
+        </div>
+
+        <!-- ② 중간 행: 좌측 사이드 · 녹색 필드 · 우측 사이드 -->
+        <div class="game-middle">
+          <!-- 좌측 사이드 (n>=4) -->
+          <div v-if="leftOpponents.length" class="opp-side opp-left">
+            <PlayerSlot
+              v-for="p in leftOpponents"
+              :key="p.id"
+              :player="p"
+              :compact="true"
+              :is-current-turn="currentTurnId === p.id"
+              :phase="phase"
+              :is-winner="phase === 'result' && p.id === winnerId"
               position="left"
             />
           </div>
 
-          <!-- 중앙 상단 슬롯 (2인: 첫 상대 / 3~4인: 두 번째 상대) -->
-          <div class="arc-slot arc-slot--top">
-            <PlayerSlot
-              v-if="otherPlayers.length === 1 && otherPlayers[0]"
-              :player="otherPlayers[0]"
-              :is-current-turn="currentTurnId === otherPlayers[0].id"
-              :phase="phase"
-              :is-winner="phase === 'result' && otherPlayers[0].id === winnerId"
-            />
-            <PlayerSlot
-              v-else-if="otherPlayers.length >= 2 && otherPlayers[1]"
-              :player="otherPlayers[1]"
-              :is-current-turn="currentTurnId === otherPlayers[1].id"
-              :phase="phase"
-              :is-winner="phase === 'result' && otherPlayers[1].id === winnerId"
-            />
-            <!-- 빈 슬롯 플레이스홀더 -->
-            <div v-else class="empty-slot-placeholder text-center opacity-20 pt-2">
-              <div class="w-8 h-12 sm:w-10 sm:h-16 bg-gray-700/50 rounded-lg mx-auto mb-1 border border-dashed border-gray-600/50"></div>
-              <div class="text-[9px] text-gray-600">대기 중</div>
+          <!-- 녹색 필드 (중앙 공간 + 상태별 콘텐츠) -->
+          <div class="green-field">
+            <!-- 대기 중 -->
+            <div v-if="phase === 'waiting'" class="flex flex-col items-center gap-2 w-full">
+              <div class="text-gray-300 text-xs sm:text-sm">플레이어 대기 중 ({{ players.length }}/7)</div>
+              <div class="flex gap-1.5 justify-center">
+                <div
+                  v-for="i in 7" :key="i"
+                  class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-colors duration-300"
+                  :class="i <= players.length ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]' : 'bg-gray-700'"
+                ></div>
+              </div>
+              <button
+                v-if="players.length >= 2 && !myPlayer?.ready"
+                @click="setReady"
+                class="btn-primary text-xs sm:text-sm px-4 py-1.5 sm:px-6 sm:py-2"
+              >준비 완료</button>
+              <p v-else-if="myPlayer?.ready" class="text-green-400 text-[10px] sm:text-xs animate-pulse">
+                준비 완료! 다른 플레이어를 기다리는 중...
+              </p>
+              <p v-else class="text-gray-500 text-[10px] sm:text-xs">최소 2명이 필요합니다</p>
+              <div class="mt-1 w-full max-w-xs sm:max-w-md mx-auto">
+                <BotManager
+                  :bot-players="botPlayers"
+                  :player-count="players.length"
+                  @add-bot="addBot"
+                  @remove-bot="removeBot"
+                />
+              </div>
             </div>
+
+            <!-- 게임 종료 -->
+            <div v-else-if="phase === 'ended'" class="text-center">
+              <div class="text-gray-400 text-xs">게임이 종료되었습니다</div>
+            </div>
+
+            <!-- playing/result: 판돈 바 (정중앙) + playing일 때 테이블 장식 -->
+            <template v-else>
+              <div class="pot-bar">
+                <div class="flex items-center gap-2 justify-center">
+                  <!-- 코인 아이콘 (판돈 증가 시 바운스) -->
+                  <svg
+                    class="w-5 h-5 flex-shrink-0"
+                    :class="{ 'coin-icon-bounce': coinBounce }"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <defs>
+                      <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#FDE68A" /> <stop offset="50%" style="stop-color:#D4A843" /> <stop offset="100%" style="stop-color:#926117" /> </linearGradient>
+                    </defs>
+                    <circle cx="12" cy="12" r="10" stroke="url(#goldGradient)" stroke-width="2" />
+                    <path
+                      d="M12 6V18M15 8.5C15 8.5 14.5 7 12 7C9.5 7 9 8.5 9 9.5C9 11.5 15 11.5 15 14.5C15 15.5 14.5 17 12 17C9.5 17 9 15.5 9 15.5M12 6V5M12 18V19"
+                      stroke="url(#goldGradient)"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                  <span class="text-sutda-gold font-bold text-base sm:text-xl pot-amount leading-none tabular-nums">
+                    {{ displayPot.toLocaleString() }}
+                  </span>
+                </div>
+                <!-- 결과: 승자 정보 -->
+                <div v-if="phase === 'result' && resultSummary" class="text-center mt-1">
+                  <span class="text-white text-xs sm:text-sm font-semibold">{{ resultSummary.winnerName }}</span>
+                  <span class="text-sutda-gold text-xs ml-1">승리!</span>
+                  <span class="text-yellow-300/80 text-[10px] ml-1">{{ resultSummary.winnerHand }}</span>
+                </div>
+              </div>
+              <!-- playing: 테이블 장식 -->
+              <div v-if="phase === 'playing'" class="felt-ring"></div>
+            </template>
           </div>
 
-          <!-- 우측 상단 슬롯 (4인 게임용) -->
-          <div class="arc-slot arc-slot--right">
+          <!-- 우측 사이드 (n>=4) -->
+          <div v-if="rightOpponents.length" class="opp-side opp-right">
             <PlayerSlot
-              v-if="otherPlayers.length >= 3 && otherPlayers[2]"
-              :player="otherPlayers[2]"
-              :is-current-turn="currentTurnId === otherPlayers[2].id"
+              v-for="p in rightOpponents"
+              :key="p.id"
+              :player="p"
+              :compact="true"
+              :is-current-turn="currentTurnId === p.id"
               :phase="phase"
-              :is-winner="phase === 'result' && otherPlayers[2].id === winnerId"
+              :is-winner="phase === 'result' && p.id === winnerId"
               position="right"
             />
-          </div>
-        </div>
-
-        <!-- ② 녹색 필드 (중앙 시원한 공간 + 상태별 콘텐츠) -->
-        <div class="green-field">
-          <!-- 대기 중 -->
-          <div v-if="phase === 'waiting'" class="flex flex-col items-center gap-2 w-full">
-            <div class="text-gray-300 text-xs sm:text-sm">플레이어 대기 중 ({{ players.length }}/4)</div>
-            <div class="flex gap-2 justify-center">
-              <div
-                v-for="i in 4" :key="i"
-                class="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-colors duration-300"
-                :class="i <= players.length ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]' : 'bg-gray-700'"
-              ></div>
-            </div>
-            <button
-              v-if="players.length >= 2 && !myPlayer?.ready"
-              @click="setReady"
-              class="btn-primary text-xs sm:text-sm px-4 py-1.5 sm:px-6 sm:py-2"
-            >준비 완료</button>
-            <p v-else-if="myPlayer?.ready" class="text-green-400 text-[10px] sm:text-xs animate-pulse">
-              준비 완료! 다른 플레이어를 기다리는 중...
-            </p>
-            <p v-else class="text-gray-500 text-[10px] sm:text-xs">최소 2명이 필요합니다</p>
-            <div class="mt-1 w-full max-w-xs sm:max-w-md mx-auto">
-              <BotManager
-                :bot-players="botPlayers"
-                :player-count="players.length"
-                @add-bot="addBot"
-                @remove-bot="removeBot"
-              />
-            </div>
-          </div>
-
-          <!-- 게임 종료 -->
-          <div v-else-if="phase === 'ended'" class="text-center">
-            <div class="text-gray-400 text-xs">게임이 종료되었습니다</div>
-          </div>
-
-          <!-- playing: 테이블 장식 (은은한 중앙 필드 효과) -->
-          <div v-else-if="phase === 'playing'" class="felt-decoration">
-            <div class="felt-ring"></div>
-          </div>
-
-          <!-- result: 중앙 필드 (빈 공간) -->
-          <div v-else class=""></div>
-        </div>
-
-        <!-- ③ 판돈 바 (내 카드 바로 위에 배치 - 핵심) -->
-        <div v-if="phase === 'playing' || phase === 'result'" class="pot-section">
-          <div class="pot-bar">
-            <div class="flex items-center gap-2 justify-center">
-              <!-- 코인 아이콘 (판돈 증가 시 바운스) -->
-              <svg
-                class="w-5 h-5 flex-shrink-0"
-                :class="{ 'coin-icon-bounce': coinBounce }"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <defs>
-                  <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#FDE68A" /> <stop offset="50%" style="stop-color:#D4A843" /> <stop offset="100%" style="stop-color:#926117" /> </linearGradient>
-                </defs>
-
-                <circle cx="12" cy="12" r="10" stroke="url(#goldGradient)" stroke-width="2" />
-                
-                <path 
-                  d="M12 6V18M15 8.5C15 8.5 14.5 7 12 7C9.5 7 9 8.5 9 9.5C9 11.5 15 11.5 15 14.5C15 15.5 14.5 17 12 17C9.5 17 9 15.5 9 15.5M12 6V5M12 18V19" 
-                  stroke="url(#goldGradient)" 
-                  stroke-width="2" 
-                  stroke-linecap="round" 
-                  stroke-linejoin="round"
-                />
-              </svg>
-              <span class="text-gray-400 text-[11px] sm:text-[15px] uppercase tracking-wider font-medium">POT</span>
-              <span class="text-sutda-gold font-bold text-base sm:text-xl pot-amount leading-none tabular-nums">
-                {{ displayPot.toLocaleString() }}원
-              </span>
-              <span v-if="phase === 'playing'" class="text-gray-500/60 text-[9px] sm:text-[10px] font-medium">
-                · R{{ roundCount + 1 }}
-              </span>
-            </div>
-            <!-- 결과: 승자 정보 -->
-            <div v-if="phase === 'result' && resultSummary" class="text-center mt-1">
-              <span class="text-white text-xs sm:text-sm font-semibold">{{ resultSummary.winnerName }}</span>
-              <span class="text-sutda-gold text-xs ml-1">승리!</span>
-              <span class="text-yellow-300/80 text-[10px] ml-1">{{ resultSummary.winnerHand }}</span>
-            </div>
           </div>
         </div>
 
@@ -521,65 +550,54 @@ watch(
   }
 }
 
-/* ===== ① 부채꼴 아크 레이아웃 ===== */
-.stadium-arc {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+/* ===== ① 상단 상대 플레이어 행 ===== */
+.opp-top-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 0.375rem;
   width: 100%;
   flex-shrink: 0;
-  padding: 0.25rem 0.25rem 0;
-  column-gap: 0.125rem;
-}
-
-.arc-slot {
-  display: flex;
-  align-items: flex-start;
-}
-
-/* 좌측 슬롯: 왼쪽 정렬, 하단 오프셋으로 부채꼴 효과 */
-.arc-slot--left {
-  justify-content: flex-start;
-  padding-top: 2rem;
-}
-
-/* 중앙 슬롯: 정중앙, 상단에 배치 (아크 꼭짓점) */
-.arc-slot--top {
-  justify-content: center;
-  padding-top: 0;
-}
-
-/* 우측 슬롯: 오른쪽 정렬, 하단 오프셋으로 부채꼴 효과 */
-.arc-slot--right {
-  justify-content: flex-end;
-  padding-top: 2rem;
+  padding: 0.25rem 0.375rem 0.125rem;
 }
 
 @media (min-width: 640px) {
-  .arc-slot--left,
-  .arc-slot--right {
-    padding-top: 2.75rem;
+  .opp-top-row {
+    gap: 0.5rem;
   }
 }
 
-/* ===== ② 녹색 필드 (중앙 넓은 공간) ===== */
+/* ===== ② 중간 행: 좌측 · 녹색 필드 · 우측 ===== */
+.game-middle {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* 사이드 컬럼 공통 */
+.opp-side {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.25rem;
+  flex-shrink: 0;
+}
+
+/* ===== 녹색 필드 (중앙 넓은 공간) ===== */
 .green-field {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.75rem;
   padding: 0.5rem;
   overflow-y: auto;
-}
-
-/* 게임 테이블 장식 (playing 중 중앙 원형 아이콘) */
-.felt-decoration {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
 }
 
 .felt-ring {
@@ -598,14 +616,7 @@ watch(
   }
 }
 
-/* ===== ③ 판돈 섹션 (내 카드 바로 위) ===== */
-.pot-section {
-  display: flex;
-  justify-content: center;
-  padding: 0.125rem 1rem 0.25rem;
-  flex-shrink: 0;
-}
-
+/* ===== ③ 판돈 바 (중앙 배치) ===== */
 .pot-bar {
   background: rgba(0, 0, 0, 0.62);
   border: 1.5px solid rgba(212, 168, 67, 0.60);
@@ -761,20 +772,16 @@ watch(
 
 /* ===== 아이폰 17 프로 세로 모드 핏-투-스크린 (430px 이하) ===== */
 @media (max-width: 430px) {
-  /* 상대 플레이어 아크: 좌우에 여백을 추가해 카드가 화면 끝에 붙지 않게 */
-  .stadium-arc {
-    padding: 0.25rem 0.875rem 0; /* 기존 0.25rem → 0.875rem 좌우 */
-    column-gap: 0.375rem;
+  /* 상단 상대 행: 좁은 화면에서 간격 줄이기 */
+  .opp-top-row {
+    gap: 0.25rem;
+    padding: 0.25rem 0.25rem 0.125rem;
   }
 
-  /* 좌우 슬롯을 각 컬럼 중앙으로 정렬 → 화면 가운데로 모아줌 */
-  .arc-slot--left {
-    justify-content: center;
-    padding-top: 1.5rem; /* 부채꼴 효과 유지하되 조금 줄임 */
-  }
-  .arc-slot--right {
-    justify-content: center;
-    padding-top: 1.5rem;
+  /* 사이드 컬럼: 패딩 최소화 */
+  .opp-side {
+    padding: 0.25rem 0.125rem;
+    gap: 0.25rem;
   }
 
   /* 판돈 바: 좁은 화면에서 최소 폭 조정 */
@@ -783,11 +790,6 @@ watch(
     width: 90%;
     max-width: 280px;
     padding: 0.4rem 1rem;
-  }
-
-  /* 판돈 섹션: 패딩 최소화 */
-  .pot-section {
-    padding: 0.125rem 0.875rem 0.125rem;
   }
 
   /* 내 카드 영역: 하단 여백 유지하되 상단 줄임 */
